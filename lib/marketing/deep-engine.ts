@@ -721,9 +721,18 @@ export function buildDeepReport(
   };
 }
 
+function effortWeight(packType: MarketingTactic["packType"]): number {
+  // Mirrors the pack effort defaults: SERVICE pages are the heaviest work.
+  if (packType === "SERVICE") return 8;
+  if (packType === "HOME" || packType === "COMPARE" || packType === "ENTITY") return 6;
+  return 4;
+}
+
 function channelMix(hours: number, tactics: MarketingTactic[]): ChannelMix[] {
   const weights: Record<string, number> = {};
-  for (const t of tactics.slice(0, 8)) weights[t.channel] = (weights[t.channel] ?? 0) + t.priority;
+  for (const t of tactics.slice(0, 8)) {
+    weights[t.channel] = (weights[t.channel] ?? 0) + effortWeight(t.packType);
+  }
   const total = Object.values(weights).reduce((a, b) => a + b, 0) || 1;
   return Object.entries(weights)
     .map(([channel, w]) => ({
