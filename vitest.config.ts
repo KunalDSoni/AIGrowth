@@ -4,7 +4,7 @@ import path from "node:path";
 export default defineConfig({
   test: {
     environment: "jsdom",
-    setupFiles: ["tests/setup/isolate-data-dir.ts"],
+    setupFiles: ["tests/setup/isolate-data-dir.ts", "tests/setup/rtl-cleanup.ts"],
     include: [
       "tests/unit/**/*.test.ts",
       "tests/unit/**/*.test.tsx",
