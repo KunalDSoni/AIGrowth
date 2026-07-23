@@ -10,11 +10,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useLiveAnalyze } from "@/lib/client/live-project";
 import type { MarketingWorkspace } from "@/lib/marketing/workspace";
 
-async function apiGenerate(domain: string | undefined, useDemo: boolean) {
+async function apiGenerate(domain: string) {
   const res = await fetch("/api/marketing/workspace", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ domain, useDemo, hoursPerWeek: 8 }),
+    body: JSON.stringify({ domain, hoursPerWeek: 8 }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error ?? "Generate failed");
@@ -76,12 +76,13 @@ export function MarketingOsDashboard() {
     };
   }, [ready, domain]);
 
-  async function generate(useDemo: boolean) {
+  async function generate() {
+    if (!domain) return;
     setBusy(true);
     setError(null);
     setMessage(null);
     try {
-      const workspace = await apiGenerate(useDemo ? undefined : domain, useDemo || !domain);
+      const workspace = await apiGenerate(domain);
       setWs(workspace);
       const chars = workspace.packs.reduce(
         (s, p) => s + p.assets.reduce((a, x) => a + x.body.length, 0),
@@ -119,14 +120,11 @@ export function MarketingOsDashboard() {
     <>
       <PageHeader
         title="Marketing OS"
-        description="Deep engine: live/demo analyze → site facts → claim-checked campaign packs → persisted HTML Position Report. Approvals stick. GSC/CMS connectors stay stubs until credentials."
+        description="Live analyze → site facts → claim-checked campaign packs → persisted HTML Position Report. Approvals stick. Nothing is generated without a real scan."
         action={
           <div className="flex flex-wrap gap-2">
-            <Button disabled={busy} onClick={() => generate(false)}>
-              {busy ? "Working…" : domain ? "Generate from live site" : "Generate (needs analyze)"}
-            </Button>
-            <Button disabled={busy} variant="secondary" onClick={() => generate(true)}>
-              Generate demo workspace
+            <Button disabled={busy || !domain} onClick={() => generate()}>
+              {busy ? "Working…" : "Generate from live site"}
             </Button>
             {ws ? (
               <Button disabled={busy} variant="outline" onClick={() => refresh()}>
@@ -140,9 +138,9 @@ export function MarketingOsDashboard() {
       {!domain && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">No live analyze in this browser</CardTitle>
+            <CardTitle className="text-base">No site analysed yet</CardTitle>
             <CardDescription>
-              Run a site analyze on the Dashboard first for live evidence — or generate a demo workspace to test the full flow.
+              Run a scan on the Dashboard to populate this workspace. Nothing is shown until there is real data.
             </CardDescription>
           </CardHeader>
           <CardContent>

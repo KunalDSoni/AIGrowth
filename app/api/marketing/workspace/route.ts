@@ -4,6 +4,7 @@ import {
   approvePlan,
   generateWorkspace,
   loadWorkspace,
+  NoProjectDataError,
   updateOutreachStatus,
   updatePackStatus,
 } from "@/lib/marketing/workspace";
@@ -12,8 +13,7 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const generateSchema = z.object({
-  domain: z.string().optional(),
-  useDemo: z.boolean().optional(),
+  domain: z.string().min(1, "A domain is required — this product does not generate sample data"),
   hoursPerWeek: z.number().min(1).max(40).optional(),
 });
 
@@ -82,11 +82,13 @@ export async function POST(request: Request) {
   try {
     const workspace = await generateWorkspace({
       domain: parsed.data.domain,
-      useDemo: parsed.data.useDemo ?? !parsed.data.domain,
       hoursPerWeek: parsed.data.hoursPerWeek ?? 8,
     });
     return NextResponse.json({ workspace, generated: true });
   } catch (error) {
+    if (error instanceof NoProjectDataError) {
+      return NextResponse.json({ error: error.message, needsScan: true }, { status: 409 });
+    }
     return NextResponse.json({ error: error instanceof Error ? error.message : "Generate failed" }, { status: 500 });
   }
 }

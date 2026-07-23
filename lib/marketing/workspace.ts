@@ -12,7 +12,6 @@ import {
   richDeterministicPackFromTactic,
   runDeepMarketingEngine,
 } from "@/lib/marketing/deep-engine";
-import { demoAnalyzeForMarketing } from "@/lib/marketing/os";
 import type {
   CampaignPack,
   MarketingOSSnapshot,
@@ -27,7 +26,7 @@ const DIR = join(process.cwd(), ".data", "marketing-workspaces");
 export interface MarketingWorkspace {
   domain: string;
   brand: string;
-  source: "live" | "demo";
+  source: "live";
   updatedAt: string;
   report: PositionReport;
   reportHtmlUrl?: string;
@@ -71,18 +70,36 @@ export async function saveWorkspace(ws: MarketingWorkspace): Promise<void> {
   await writeFile(pathFor(ws.domain), JSON.stringify(ws, null, 2), "utf8");
 }
 
+/**
+ * Raised when a caller asks for analysis of a domain that has never been
+ * scanned. The product must show nothing rather than invent a stand-in.
+ */
+export class NoProjectDataError extends Error {
+  readonly domain?: string;
+
+  constructor(domain?: string) {
+    super(
+      domain
+        ? `No analysis data for ${domain}. Run a scan first.`
+        : "No domain supplied and no analysis data available.",
+    );
+    this.name = "NoProjectDataError";
+    this.domain = domain;
+  }
+}
+
 export async function resolveAnalyze(input: {
   domain?: string;
-  useDemo?: boolean;
   analyze?: AnalyzeResult;
-}): Promise<{ result: AnalyzeResult; source: "live" | "demo" }> {
+}): Promise<{ result: AnalyzeResult; source: "live" }> {
   if (input.analyze) {
     const result = input.analyze;
     // Never clobber an existing intelligence profile (services/audiences).
     if (!result.intelligence) result.intelligence = buildLiveIntelligence(result);
     return { result, source: "live" };
   }
-  if (input.domain && !input.useDemo) {
+
+  if (input.domain) {
     const { domainKey, getProjectStore } = await import("@/lib/projects/store");
     const latest = await getProjectStore().loadLatest(domainKey(input.domain));
     if (latest) {
@@ -90,9 +107,8 @@ export async function resolveAnalyze(input: {
       return { result: latest, source: "live" };
     }
   }
-  const demo = demoAnalyzeForMarketing();
-  if (!demo.intelligence) demo.intelligence = buildLiveIntelligence(demo);
-  return { result: demo, source: "demo" };
+
+  throw new NoProjectDataError(input.domain);
 }
 
 function escapeHtml(s: string) {
@@ -120,7 +136,6 @@ function renderWeeklyHtml(
 
 export async function generateWorkspace(input: {
   domain?: string;
-  useDemo?: boolean;
   hoursPerWeek?: number;
   analyze?: AnalyzeResult;
   useGemini?: boolean;
@@ -171,16 +186,7 @@ export async function generateWorkspace(input: {
     status: "todo",
     pitch: `Resource offer from ${deep.context.brand} (${deep.context.domain}) — checklist for ${deep.context.services[0]}`,
   }));
-  if (!outreach.length) {
-    outreach.push({
-      id: "out-seed-1",
-      domain: "industry-publication.example",
-      class: "third-party",
-      why: "No live citations yet — seed target for first outreach wave",
-      status: "todo",
-      pitch: `Pitch useful ${deep.context.services[0]} checklist from ${deep.context.brand}`,
-    });
-  }
+  // No invented seed targets. An empty list means no citations were observed.
 
   const ws: MarketingWorkspace = {
     domain: result.project.domain,
@@ -372,7 +378,7 @@ export async function approvePlan(domain: string) {
 export async function regeneratePack(domain: string, tacticId: string) {
   const ws = await loadWorkspace(domain);
   if (!ws) throw new Error("Workspace not found.");
-  const { result } = await resolveAnalyze({ domain, useDemo: ws.source === "demo" });
+  const { result } = await resolveAnalyze({ domain });
   const deep = await runDeepMarketingEngine(result, { hoursPerWeek: 8, useGemini: false });
   const tactic =
     deep.tactics.find((t) => t.id === tacticId) ??

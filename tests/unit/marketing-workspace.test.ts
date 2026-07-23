@@ -41,7 +41,15 @@ describe("Deep marketing engine", () => {
 
 describe("Marketing workspace (persistent + deep)", () => {
   it("generates deep packs, persists, and mutates status", async () => {
-    const ws = await generateWorkspace({ useDemo: true, hoursPerWeek: 8, useGemini: false });
+    // Fixture is passed in explicitly. The product itself can no longer
+    // fabricate a stand-in project when real data is absent.
+    const fixture = demoAnalyzeForMarketing();
+    fixture.intelligence = buildLiveIntelligence(fixture);
+    const ws = await generateWorkspace({
+      analyze: fixture,
+      hoursPerWeek: 8,
+      useGemini: false,
+    });
     expect(ws.packs.length).toBeGreaterThan(3);
     expect(ws.siteFacts.length).toBeGreaterThan(8);
     expect(ws.reportHtmlUrl).toMatch(/^\/api\/reports\//);
