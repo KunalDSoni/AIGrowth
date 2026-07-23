@@ -1,0 +1,179 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  BadgeCheck,
+  BarChart3,
+  BookOpen,
+  Bot,
+  Building2,
+  ChevronsUpDown,
+  FileSearch,
+  LayoutDashboard,
+  LogOut,
+  Radar,
+  Settings,
+  Sprout,
+  Swords,
+  Target,
+  TrendingUp,
+  Wrench,
+  type LucideIcon,
+} from "lucide-react";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+} from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+
+type NavItem = { href: string; title: string; icon: LucideIcon };
+type NavGroup = { label: string; items: NavItem[] };
+
+export const NAV_GROUPS: NavGroup[] = [
+  {
+    label: "Analyze",
+    items: [
+      { href: "/demo/dashboard", title: "Dashboard", icon: LayoutDashboard },
+      { href: "/demo/business", title: "Business graph", icon: Building2 },
+      { href: "/demo/audit", title: "Audit workspace", icon: FileSearch },
+      { href: "/demo/site-intelligence", title: "Site intelligence", icon: Wrench },
+    ],
+  },
+  {
+    label: "Grow",
+    items: [
+      { href: "/demo/opportunities", title: "Opportunities", icon: Target },
+      { href: "/demo/content", title: "Content planner", icon: BookOpen },
+      { href: "/demo/ai-visibility", title: "AI visibility", icon: Radar },
+      { href: "/demo/competitors", title: "Competitors", icon: Swords },
+    ],
+  },
+  {
+    label: "Measure",
+    items: [
+      { href: "/demo/outcomes", title: "Outcomes", icon: TrendingUp },
+      { href: "/demo/community", title: "Community playbooks", icon: BarChart3 },
+    ],
+  },
+  {
+    label: "Workspace",
+    items: [
+      { href: "/demo/assistant", title: "Growth assistant", icon: Bot },
+      { href: "/demo/settings", title: "Project settings", icon: Settings },
+    ],
+  },
+];
+
+export const NAV_LABELS: Record<string, string> = Object.fromEntries(
+  NAV_GROUPS.flatMap((group) => group.items.map((item) => [item.href, item.title])),
+);
+
+export function AppSidebar() {
+  const pathname = usePathname();
+  return (
+    <Sidebar collapsible="icon">
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                    <Sprout className="size-4" />
+                  </div>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">OpenGrowth AI</span>
+                    <span className="truncate text-xs text-muted-foreground">Northstar Accounting</span>
+                  </div>
+                  <ChevronsUpDown className="ml-auto size-4" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg" align="start">
+                <DropdownMenuLabel className="text-xs text-muted-foreground">Workspace</DropdownMenuLabel>
+                <DropdownMenuItem>Northstar Accounting</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/">← Back to marketing site</Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+
+      <SidebarContent>
+        {NAV_GROUPS.map((group) => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarMenu>
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)} tooltip={item.title}>
+                      <Link href={item.href}>
+                        <Icon />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroup>
+        ))}
+      </SidebarContent>
+
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+                  <Avatar className="size-8 rounded-lg">
+                    <AvatarFallback className="rounded-lg">KA</AvatarFallback>
+                  </Avatar>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">Demo user</span>
+                    <span className="truncate text-xs text-muted-foreground">Free plan · 2/5 assets</span>
+                  </div>
+                  <ChevronsUpDown className="ml-auto size-4" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56 rounded-lg" align="end" side="top">
+                <DropdownMenuLabel>My account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <BadgeCheck className="size-4" /> Upgrade plan
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/">
+                    <LogOut className="size-4" /> Exit demo
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
+  );
+}

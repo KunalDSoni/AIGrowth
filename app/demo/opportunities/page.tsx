@@ -1,54 +1,75 @@
 import { Target } from "lucide-react";
 import { promptOpportunities } from "@/lib/data/demo";
+import { PageHeader } from "@/components/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-const intentColor: Record<string, string> = {
-  informational: "#475569",
-  commercial: "#1d4ed8",
-  comparison: "#7c3aed",
-  transactional: "#166534",
-  local: "#b45309",
-  navigational: "#0f766e",
+const intentClass: Record<string, string> = {
+  informational: "border-slate-200 bg-slate-50 text-slate-700",
+  commercial: "border-blue-200 bg-blue-50 text-blue-700",
+  comparison: "border-violet-200 bg-violet-50 text-violet-700",
+  transactional: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  local: "border-amber-200 bg-amber-50 text-amber-700",
+  navigational: "border-teal-200 bg-teal-50 text-teal-700",
 };
+
+function Metric({ value, label }: { value: string | number; label: string }) {
+  return (
+    <div className="flex flex-col">
+      <span className="text-lg font-semibold tabular-nums">{value}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
+    </div>
+  );
+}
 
 export default function OpportunitiesPage() {
   const top = promptOpportunities.slice(0, 16);
   return (
     <>
-      <div className="page-heading">
-        <div>
-          <span className="eyebrow">Search &amp; prompt demand</span>
-          <h1 className="serif">Ranked growth opportunities</h1>
-          <p>Prompt and topic opportunities scored by a demand proxy that blends estimated volume, competition and business relevance.</p>
-        </div>
-        <span className="pill">Demo provider · estimated</span>
-      </div>
-      <div className="context-note">
-        <div>
-          <b>Estimate guardrail</b>
-          <p>Volume and competition are simulated estimates from the demo provider. Connect Search Console or a keyword provider to replace them with measured data.</p>
-        </div>
-      </div>
-      <div className="ai-visibility-grid">
+      <PageHeader
+        title="Ranked growth opportunities"
+        description="Prompt and topic opportunities scored by a demand proxy that blends estimated volume, competition and business relevance."
+        action={<Badge variant="secondary">Demo provider · estimated</Badge>}
+      />
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Estimate guardrail</CardTitle>
+          <CardDescription>
+            Volume and competition are simulated estimates from the demo provider. Connect Search Console or a keyword provider to
+            replace them with measured data.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {top.map((opportunity) => (
-          <section className="surface ai-family" key={opportunity.id}>
-            <div className="ai-family-head">
-              <div>
-                <span className="eyebrow">{opportunity.service}</span>
-                <h2>{opportunity.query}</h2>
+          <Card key={opportunity.id}>
+            <CardHeader>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <CardDescription>{opportunity.service}</CardDescription>
+                  <CardTitle className="text-base">{opportunity.query}</CardTitle>
+                </div>
+                <Badge variant="secondary">Demand {opportunity.demandProxy}</Badge>
               </div>
-              <span className="pill">Demand {opportunity.demandProxy}</span>
-            </div>
-            <div className="ai-metrics">
-              <div><b>{opportunity.demandProxy}</b><span>Demand proxy</span></div>
-              <div><b>{opportunity.businessRelevance}</b><span>Business relevance</span></div>
-              <div><b style={{ color: intentColor[opportunity.intent] ?? "#334155", textTransform: "capitalize" }}>{opportunity.intent}</b><span>Intent</span></div>
-            </div>
-            <div className="tag-row">
-              <span><Target size={12} /> {opportunity.funnelStage}</span>
-              <span>{opportunity.topic}</span>
-              {opportunity.labels.map((label) => <span key={label}>{label}</span>)}
-            </div>
-          </section>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Metric value={opportunity.demandProxy} label="Demand proxy" />
+                <Metric value={opportunity.businessRelevance} label="Relevance" />
+                <div className="flex flex-col">
+                  <Badge variant="outline" className={`w-fit capitalize ${intentClass[opportunity.intent] ?? ""}`}>{opportunity.intent}</Badge>
+                  <span className="mt-1 text-xs text-muted-foreground">Intent</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <Badge variant="outline" className="gap-1"><Target className="size-3" /> {opportunity.funnelStage}</Badge>
+                <Badge variant="outline">{opportunity.topic}</Badge>
+                {opportunity.labels.map((label) => <Badge key={label} variant="outline">{label}</Badge>)}
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
     </>

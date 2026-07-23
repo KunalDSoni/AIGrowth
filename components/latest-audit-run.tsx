@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { FileSearch } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface StoredAuditRun {
   id?: string;
@@ -51,9 +53,38 @@ export function LatestAuditRun() {
     };
   }, []);
 
-  if (!run) return <section className="surface latest-audit-run"><FileSearch size={18} /><div><b>No persisted audit run stored yet</b><p className="muted">Run onboarding to capture the latest audit API response.</p></div></section>;
+  if (!run)
+    return (
+      <Card>
+        <CardContent className="flex items-center gap-3">
+          <FileSearch className="size-5 text-muted-foreground" />
+          <div>
+            <p className="font-medium">No persisted audit run stored yet</p>
+            <p className="text-sm text-muted-foreground">Run onboarding to capture the latest audit API response.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
 
   const data = run.data ?? run;
   const capturedAt = run.completedAt ?? run.capturedAt;
-  return <section className="surface latest-audit-run"><FileSearch size={18} /><div><b>Latest persisted audit run</b><p className="muted">{data.source ?? "unknown source"} · {data.url ?? "demo project"} · {capturedAt ? new Date(capturedAt).toLocaleString() : "stored locally"}</p>{data.crawl ? <p className="fine">Crawled {data.crawl.finalUrl} with status {data.crawl.statusCode}; normalized {data.crawl.wordCount} words.</p> : null}{data.crawlError ? <p className="fine">Crawler fallback: {data.crawlError}</p> : null}{run.id || run.data?.runId ? <p className="fine">Run ID: {run.id ?? run.data?.runId}</p> : null}</div><span className="pill">{data.simulatedIssues ? "Simulated issues" : "Live rule issues"}</span></section>;
+  return (
+    <Card>
+      <CardContent className="flex flex-wrap items-center gap-3">
+        <FileSearch className="size-5 text-muted-foreground" />
+        <div className="flex-1">
+          <p className="font-medium">Latest persisted audit run</p>
+          <p className="text-sm text-muted-foreground">
+            {data.source ?? "unknown source"} · {data.url ?? "demo project"} · {capturedAt ? new Date(capturedAt).toLocaleString() : "stored locally"}
+          </p>
+          {data.crawl ? (
+            <p className="text-xs text-muted-foreground">Crawled {data.crawl.finalUrl} with status {data.crawl.statusCode}; normalized {data.crawl.wordCount} words.</p>
+          ) : null}
+          {data.crawlError ? <p className="text-xs text-muted-foreground">Crawler fallback: {data.crawlError}</p> : null}
+          {run.id || run.data?.runId ? <p className="text-xs text-muted-foreground">Run ID: {run.id ?? run.data?.runId}</p> : null}
+        </div>
+        <Badge variant="secondary">{data.simulatedIssues ? "Simulated issues" : "Live rule issues"}</Badge>
+      </CardContent>
+    </Card>
+  );
 }

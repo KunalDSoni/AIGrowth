@@ -1,4 +1,56 @@
 import { TrendingUp } from "lucide-react";
 import { outcomeLearningRecords } from "@/lib/data/demo";
+import { PageHeader } from "@/components/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function OutcomesPage(){return <><div className="page-heading"><div><span className="eyebrow">Outcome learning</span><h1 className="serif">What changed after implementation?</h1><p>Simulated before-and-after comparisons with attribution limits. These are learning signals, not proof of guaranteed causation.</p></div><span className="pill">Demo outcomes</span></div><div className="outcome-grid">{outcomeLearningRecords.map(record=><section className="surface outcome-card" key={record.id}><div className="ai-family-head"><div><span className="eyebrow">Implemented action</span><h2>{record.recommendationTitle}</h2></div><span className="pill">{record.outcomeConfidence} confidence</span></div><div className="measurement-grid"><div><b>Baseline</b><span>{record.baselinePeriod}</span></div><div><b>Implementation</b><span>{record.implementationDate}</span></div><div><b>Comparison</b><span>{record.comparisonPeriod}</span></div></div><div className="outcome-change-grid">{record.observedChanges.map(change=><div key={change.label}><TrendingUp size={16}/><b>{change.delta>0?"+":""}{change.delta}{change.unit}</b><span>{change.label}</span></div>)}</div><p><b>Attribution limits:</b> {record.attributionLimitations}</p>{record.externalEvents.length>0&&<p><b>External events:</b> {record.externalEvents.join(" ")}</p>}<p><b>Follow-up:</b> {record.followUpAction}</p></section>)}</div></>}
+export default function OutcomesPage() {
+  return (
+    <>
+      <PageHeader
+        title="What changed after implementation?"
+        description="Simulated before-and-after comparisons with attribution limits. These are learning signals, not proof of guaranteed causation."
+        action={<Badge variant="secondary">Demo outcomes</Badge>}
+      />
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {outcomeLearningRecords.map((record) => (
+          <Card key={record.id}>
+            <CardHeader>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <CardDescription>Implemented action</CardDescription>
+                  <CardTitle className="text-base">{record.recommendationTitle}</CardTitle>
+                </div>
+                <Badge variant="secondary">{record.outcomeConfidence} confidence</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-3 rounded-lg border p-3 text-sm">
+                <div><p className="font-medium">Baseline</p><p className="text-muted-foreground">{record.baselinePeriod}</p></div>
+                <div><p className="font-medium">Implementation</p><p className="text-muted-foreground">{record.implementationDate}</p></div>
+                <div><p className="font-medium">Comparison</p><p className="text-muted-foreground">{record.comparisonPeriod}</p></div>
+              </div>
+              <div className="flex flex-wrap gap-6">
+                {record.observedChanges.map((change) => (
+                  <div key={change.label} className="flex flex-col">
+                    <span className="flex items-center gap-1 text-lg font-semibold tabular-nums">
+                      <TrendingUp className="size-4 text-emerald-600" />
+                      {change.delta > 0 ? "+" : ""}{change.delta}{change.unit}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{change.label}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm"><span className="font-medium">Attribution limits: </span><span className="text-muted-foreground">{record.attributionLimitations}</span></p>
+              {record.externalEvents.length > 0 && (
+                <p className="text-sm"><span className="font-medium">External events: </span><span className="text-muted-foreground">{record.externalEvents.join(" ")}</span></p>
+              )}
+              <p className="text-sm"><span className="font-medium">Follow-up: </span><span className="text-muted-foreground">{record.followUpAction}</span></p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </>
+  );
+}

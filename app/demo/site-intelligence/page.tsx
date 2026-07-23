@@ -1,97 +1,107 @@
 import { AlertTriangle, FileWarning, LayoutGrid, ShieldCheck } from "lucide-react";
 import { aiAccessFindings, contentInventory, contentRefreshCandidates, siteInventory } from "@/lib/data/demo";
+import { PageHeader } from "@/components/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-const severityColor: Record<string, string> = {
-  critical: "#9f1239",
-  warning: "#b45309",
-  notice: "#475569",
+const severityClass: Record<string, string> = {
+  critical: "border-rose-200 bg-rose-50 text-rose-700",
+  warning: "border-amber-200 bg-amber-50 text-amber-700",
+  notice: "border-slate-200 bg-slate-50 text-slate-700",
 };
 
-const statusColor: Record<string, string> = {
-  healthy: "#166534",
-  thin: "#b45309",
-  stale: "#9f1239",
-  duplicate: "#7c3aed",
-  underperforming: "#b45309",
+const statusClass: Record<string, string> = {
+  healthy: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  thin: "border-amber-200 bg-amber-50 text-amber-700",
+  stale: "border-rose-200 bg-rose-50 text-rose-700",
+  duplicate: "border-violet-200 bg-violet-50 text-violet-700",
+  underperforming: "border-amber-200 bg-amber-50 text-amber-700",
 };
 
 export default function SiteIntelligencePage() {
   return (
     <>
-      <div className="page-heading">
-        <div>
-          <span className="eyebrow">Site intelligence</span>
-          <h1 className="serif">Inventory, crawler access &amp; content health</h1>
-          <p>How the site is structured, whether AI and search crawlers can reach it, and which pages need work.</p>
-        </div>
-        <span className="pill">Demo crawl · simulated</span>
-      </div>
+      <PageHeader
+        title="Inventory, crawler access & content health"
+        description="How the site is structured, whether AI and search crawlers can reach it, and which pages need work."
+        action={<Badge variant="secondary">Demo crawl · simulated</Badge>}
+      />
 
-      <section className="surface citation-actions">
-        <span className="eyebrow"><LayoutGrid size={14} /> Page inventory</span>
-        <h2>Pages classified by purpose</h2>
-        <div className="tag-row">
-          {Object.entries(siteInventory.countsByPurpose)
-            .filter(([, count]) => count > 0)
-            .map(([purpose, count]) => <span key={purpose}>{purpose}: {count}</span>)}
-        </div>
-        <div className="citation-action-grid">
-          {siteInventory.pages.map((page) => (
-            <article key={page.url}>
-              <span className="pill">{page.purpose}</span>
-              <h3>{page.url}</h3>
-              <p className="fine">Confidence {page.confidence}% · {page.signals.join(", ")}</p>
-            </article>
-          ))}
-        </div>
-        {siteInventory.coverageGaps.length > 0 && (
-          <p className="muted"><b>Coverage gaps:</b> {siteInventory.coverageGaps.map((g) => g.service).join(", ")}</p>
-        )}
-      </section>
-
-      <section className="surface citation-actions">
-        <span className="eyebrow"><ShieldCheck size={14} /> AI &amp; search crawler access</span>
-        <h2>Can crawlers reach the content?</h2>
-        {aiAccessFindings.length === 0 ? (
-          <p className="muted">No crawler-access issues detected in the simulated robots setup.</p>
-        ) : (
-          <div className="citation-action-grid">
-            {aiAccessFindings.map((finding) => (
-              <article key={finding.id}>
-                <span className="pill" style={{ color: severityColor[finding.severity] }}>{finding.severity}</span>
-                <h3>{finding.title}</h3>
-                <p>{finding.detail}</p>
-                <p className="fine"><AlertTriangle size={12} /> {finding.caveat}</p>
-                <div className="tag-row">{finding.affectedAgents.slice(0, 4).map((a) => <span key={a}>{a}</span>)}</div>
-              </article>
-            ))}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base"><LayoutGrid className="size-4" /> Pages classified by purpose</CardTitle>
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {Object.entries(siteInventory.countsByPurpose)
+              .filter(([, count]) => count > 0)
+              .map(([purpose, count]) => <Badge key={purpose} variant="outline">{purpose}: {count}</Badge>)}
           </div>
-        )}
-      </section>
-
-      <section className="surface citation-actions">
-        <span className="eyebrow"><FileWarning size={14} /> Content health &amp; refresh</span>
-        <h2>Which pages need attention</h2>
-        <div className="citation-action-grid">
-          {contentInventory.map((item) => (
-            <article key={item.url}>
-              <span className="pill" style={{ color: statusColor[item.status] }}>{item.status}</span>
-              <h3>{item.url}</h3>
-              <p className="fine">Target: {item.targetQuery} · SEO value {item.seoValue} · {item.performanceSource}</p>
-            </article>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {siteInventory.pages.map((page) => (
+            <div key={page.url} className="rounded-lg border p-3">
+              <Badge variant="secondary">{page.purpose}</Badge>
+              <p className="mt-2 font-medium break-all">{page.url}</p>
+              <p className="text-xs text-muted-foreground">Confidence {page.confidence}% · {page.signals.join(", ")}</p>
+            </div>
           ))}
-        </div>
+        </CardContent>
+        {siteInventory.coverageGaps.length > 0 && (
+          <CardContent className="pt-0 text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">Coverage gaps: </span>
+            {siteInventory.coverageGaps.map((gap) => gap.service).join(", ")}
+          </CardContent>
+        )}
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base"><ShieldCheck className="size-4" /> Can crawlers reach the content?</CardTitle>
+          <CardDescription>AI &amp; search crawler access.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {aiAccessFindings.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No crawler-access issues detected in the simulated robots setup.</p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {aiAccessFindings.map((finding) => (
+                <div key={finding.id} className="rounded-lg border p-3">
+                  <Badge variant="outline" className={severityClass[finding.severity]}>{finding.severity}</Badge>
+                  <p className="mt-2 font-medium">{finding.title}</p>
+                  <p className="text-sm text-muted-foreground">{finding.detail}</p>
+                  <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><AlertTriangle className="size-3" /> {finding.caveat}</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">{finding.affectedAgents.slice(0, 4).map((agent) => <Badge key={agent} variant="outline">{agent}</Badge>)}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base"><FileWarning className="size-4" /> Which pages need attention</CardTitle>
+          <CardDescription>Content health &amp; refresh.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {contentInventory.map((item) => (
+            <div key={item.url} className="rounded-lg border p-3">
+              <Badge variant="outline" className={statusClass[item.status]}>{item.status}</Badge>
+              <p className="mt-2 font-medium break-all">{item.url}</p>
+              <p className="text-xs text-muted-foreground">Target: {item.targetQuery} · SEO value {item.seoValue} · {item.performanceSource}</p>
+            </div>
+          ))}
+        </CardContent>
         {contentRefreshCandidates.length > 0 && (
-          <>
-            <h3>Prioritized refresh candidates</h3>
+          <CardContent className="space-y-1 pt-0">
+            <h3 className="text-sm font-semibold">Prioritized refresh candidates</h3>
             {contentRefreshCandidates.map((candidate) => (
-              <p className="fine" key={candidate.url}>
-                <b>{candidate.url}</b> (priority {candidate.priority}): {candidate.reasons.join(" ")}
+              <p key={candidate.url} className="text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">{candidate.url}</span> (priority {candidate.priority}): {candidate.reasons.join(" ")}
               </p>
             ))}
-          </>
+          </CardContent>
         )}
-      </section>
+      </Card>
     </>
   );
 }

@@ -1,4 +1,85 @@
 import { additionalRecommendations, auditIssues, evidenceReferences } from "@/lib/data/demo";
 import { LatestAuditRun } from "@/components/latest-audit-run";
-const sections=["Executive summary","Technical SEO","Content quality","Search opportunities","Local SEO","Conversion optimization","Competitor gaps","Internal linking","Schema opportunities","Page speed","Mobile experience","Accessibility basics"];
-export default function AuditPage(){return <><div className="page-heading"><div><span className="eyebrow">Audit workspace</span><h1 className="serif">A clear view of what matters</h1><p>Technical rules now connect each issue to observed evidence and a recommended action.</p></div><span className="pill">Simulated audit · 23 Jul 2026</span></div><LatestAuditRun/><div className="audit-layout"><nav className="audit-tabs">{sections.map((s,i)=><a href={`#section-${i}`} className={i===0?"active":""} key={s}>{s}</a>)}</nav><div><section className="surface audit-summary" id="section-0"><span className="eyebrow">Executive summary</span><h2 className="serif">Northstar has a credible offer, but search demand cannot see its specialization yet.</h2><p>The site is technically serviceable. The largest gap is not a broken tag—it is missing commercial coverage for industries and locations Northstar already serves. Technical issues are grouped by impact area and evidence.</p><div className="audit-score"><b>72</b><span>Growth readiness<br/><small>Good foundation</small></span></div></section><h2>Issues worth acting on</h2><div className="issue-list">{auditIssues.map(i=>{const evidence=evidenceReferences.filter(reference=>i.evidenceIds.includes(reference.id));return <div className="surface issue issue-rich" key={i.id}><span className={`severity ${i.severity}`}>{i.severity.replace("-"," ")}</span><div><b>{i.title}</b><p>{i.description}</p><p><b>Recommended action:</b> {i.recommendedAction}</p><div className="tag-row"><span>Rule: {i.ruleId}</span><span>Impact: {i.impactArea}</span><span>{evidence.length} evidence ref</span></div>{evidence.map(reference=><p className="fine" key={reference.id}>{reference.source}: {reference.summary}</p>)}</div><small>{i.affectedPages} page{i.affectedPages===1?"":"s"}</small></div>})}</div><h2>Planned after the top five</h2><div className="surface backlog">{additionalRecommendations.map((x,i)=><div key={x}><span>{i+6}</span><b>{x}</b><small>Queued</small></div>)}</div></div></div></>}
+import { PageHeader } from "@/components/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+const severityClass: Record<string, string> = {
+  critical: "border-rose-200 bg-rose-50 text-rose-700",
+  high: "border-amber-200 bg-amber-50 text-amber-700",
+  "quick-win": "border-emerald-200 bg-emerald-50 text-emerald-700",
+  monitor: "border-blue-200 bg-blue-50 text-blue-700",
+  ignore: "border-neutral-200 bg-neutral-50 text-neutral-600",
+};
+
+export default function AuditPage() {
+  return (
+    <>
+      <PageHeader
+        title="A clear view of what matters"
+        description="Technical rules now connect each issue to observed evidence and a recommended action."
+        action={<Badge variant="secondary">Simulated audit · 23 Jul 2026</Badge>}
+      />
+
+      <LatestAuditRun />
+
+      <Card className="border-primary/20 bg-muted/40">
+        <CardHeader>
+          <CardDescription>Executive summary</CardDescription>
+          <CardTitle>Northstar has a credible offer, but search demand cannot see its specialization yet.</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center gap-4">
+          <div className="flex size-16 items-center justify-center rounded-xl bg-primary text-2xl font-bold text-primary-foreground">72</div>
+          <div className="text-sm">
+            <p className="font-medium">Growth readiness</p>
+            <p className="text-muted-foreground">Good foundation. Largest gap is missing commercial coverage, not a broken tag.</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div>
+        <h2 className="text-lg font-semibold">Issues worth acting on</h2>
+      </div>
+      <div className="grid gap-3">
+        {auditIssues.map((issue) => {
+          const evidence = evidenceReferences.filter((reference) => issue.evidenceIds.includes(reference.id));
+          return (
+            <Card key={issue.id}>
+              <CardHeader>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className={severityClass[issue.severity]}>{issue.severity.replace("-", " ")}</Badge>
+                  <Badge variant="secondary">{issue.impactArea}</Badge>
+                  <span className="text-xs text-muted-foreground">rule: {issue.ruleId}</span>
+                </div>
+                <CardTitle className="text-base">{issue.title}</CardTitle>
+                <CardDescription>{issue.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <p><span className="font-medium">Recommended action: </span>{issue.recommendedAction}</p>
+                {evidence.map((reference) => (
+                  <p key={reference.id} className="text-xs text-muted-foreground">{reference.source}: {reference.summary}</p>
+                ))}
+                <p className="text-xs text-muted-foreground">{issue.affectedPages} page{issue.affectedPages === 1 ? "" : "s"} affected</p>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Planned after the top five</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {additionalRecommendations.map((recommendation, index) => (
+            <div key={recommendation} className="flex items-center gap-3 rounded-lg border p-3">
+              <span className="flex size-6 items-center justify-center rounded-md bg-muted text-xs font-semibold">{index + 6}</span>
+              <span className="flex-1 text-sm">{recommendation}</span>
+              <Badge variant="outline">Queued</Badge>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </>
+  );
+}

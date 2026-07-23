@@ -9,6 +9,9 @@ import {
   type BusinessGraph,
 } from "@/lib/engines/business-graph";
 import { businessGraph as seedGraph } from "@/lib/data/demo";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const TYPES: [BusinessEntityType, string][] = [
   ["service", "Services"],
@@ -18,12 +21,20 @@ const TYPES: [BusinessEntityType, string][] = [
   ["competitor", "Competitors"],
 ];
 
-const statusColor: Record<string, string> = {
-  confirmed: "#166534",
-  "user-supplied": "#1d4ed8",
-  observed: "#0f766e",
-  "ai-inferred": "#b45309",
-  rejected: "#9f1239",
+const statusClass: Record<string, string> = {
+  confirmed: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  "user-supplied": "border-blue-200 bg-blue-50 text-blue-700",
+  observed: "border-teal-200 bg-teal-50 text-teal-700",
+  "ai-inferred": "border-amber-200 bg-amber-50 text-amber-700",
+  rejected: "border-rose-200 bg-rose-50 text-rose-700",
+};
+
+const dotClass: Record<string, string> = {
+  confirmed: "bg-emerald-500",
+  "user-supplied": "bg-blue-500",
+  observed: "bg-teal-500",
+  "ai-inferred": "bg-amber-500",
+  rejected: "bg-rose-500",
 };
 
 export default function BusinessGraphPage() {
@@ -50,73 +61,96 @@ export default function BusinessGraphPage() {
 
   return (
     <>
-      <div className="page-heading">
-        <div>
-          <span className="eyebrow">Business understanding</span>
-          <h1 className="serif">Confirm what we believe about your business</h1>
-          <p>AI-inferred facts must be reviewed before they influence recommendations. Confirmed facts outrank inferred ones in every score.</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Confirm what we believe about your business</h1>
+          <p className="max-w-2xl text-muted-foreground">
+            AI-inferred facts must be reviewed before they influence recommendations. Confirmed facts outrank inferred ones in every score.
+          </p>
         </div>
-        <span className="pill">{pending.length} awaiting review</span>
+        <Badge variant="secondary">{pending.length} awaiting review</Badge>
       </div>
 
-      <div className="context-note">
-        <div>
-          <b>Why this matters</b>
-          <p>Nothing the AI guesses about your business is treated as truth until you confirm it. Reject anything wrong and it stops affecting scoring immediately.</p>
-        </div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Why this matters</CardTitle>
+          <CardDescription>
+            Nothing the AI guesses about your business is treated as truth until you confirm it. Reject anything wrong and it stops
+            affecting scoring immediately.
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
-      <section className="surface citation-actions">
-        <span className="eyebrow">Review queue</span>
-        <h2>Inferred facts to confirm, edit or reject</h2>
-        {pending.length === 0 ? (
-          <p className="muted">Nothing left to review — every inferred fact has a decision.</p>
-        ) : (
-          <div className="citation-action-grid">
-            {pending.map((entity) => (
-              <article key={entity.id}>
-                <span className="pill" style={{ color: statusColor[entity.status] }}>{entity.type} · inferred</span>
-                <h3>{entity.label}</h3>
-                <p className="fine">Confidence {entity.confidence}%</p>
-                <div className="tag-row">
-                  <button className="btn btn-primary" type="button" onClick={() => decide(entity.id, "confirm")}><Check size={14} /> Confirm</button>
-                  <button className="btn btn-secondary" type="button" onClick={() => edit(entity.id, entity.label)}><PencilLine size={14} /> Edit</button>
-                  <button className="btn btn-secondary" type="button" onClick={() => decide(entity.id, "reject")}><X size={14} /> Reject</button>
+      <Card>
+        <CardHeader>
+          <CardTitle>Review queue</CardTitle>
+          <CardDescription>Inferred facts to confirm, edit or reject.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {pending.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nothing left to review — every inferred fact has a decision.</p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {pending.map((entity) => (
+                <div key={entity.id} className="flex flex-col gap-2 rounded-lg border p-4">
+                  <Badge variant="outline" className={statusClass[entity.status]}>{entity.type} · inferred</Badge>
+                  <p className="font-medium">{entity.label}</p>
+                  <p className="text-xs text-muted-foreground">Confidence {entity.confidence}%</p>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    <Button size="sm" type="button" onClick={() => decide(entity.id, "confirm")}>
+                      <Check className="size-3.5" /> Confirm
+                    </Button>
+                    <Button size="sm" variant="outline" type="button" onClick={() => edit(entity.id, entity.label)}>
+                      <PencilLine className="size-3.5" /> Edit
+                    </Button>
+                    <Button size="sm" variant="outline" type="button" onClick={() => decide(entity.id, "reject")}>
+                      <X className="size-3.5" /> Reject
+                    </Button>
+                  </div>
                 </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      <section className="surface citation-actions">
-        <span className="eyebrow">Knowledge graph</span>
-        <h2>What we know, ranked by trust</h2>
-        <div className="ai-columns">
+      <Card>
+        <CardHeader>
+          <CardTitle>Knowledge graph</CardTitle>
+          <CardDescription>What we know, ranked by trust.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {TYPES.map(([type, label]) => {
             const entities = rankedEntities(graph, type);
             if (entities.length === 0) return null;
             return (
-              <div key={type}>
-                <h3>{label}</h3>
+              <div key={type} className="space-y-2">
+                <h3 className="text-sm font-semibold">{label}</h3>
                 {entities.map((entity) => (
-                  <p className="fine" key={entity.id}>
-                    <span style={{ color: statusColor[entity.status] }}>&#9679;</span> {entity.label}
-                    <span className="muted"> — {entity.status}</span>
-                  </p>
+                  <div key={entity.id} className="flex items-center gap-2 text-sm">
+                    <span className={`size-2 shrink-0 rounded-full ${dotClass[entity.status] ?? "bg-neutral-400"}`} />
+                    <span>{entity.label}</span>
+                    <span className="text-xs text-muted-foreground">— {entity.status}</span>
+                  </div>
                 ))}
               </div>
             );
           })}
-        </div>
-      </section>
+        </CardContent>
+      </Card>
 
       {log.length > 0 && (
-        <section className="surface citation-actions">
-          <span className="eyebrow">Audit trail</span>
-          <h2>Recent decisions</h2>
-          {log.map((entry, index) => <p className="fine" key={index}>{entry}</p>)}
-        </section>
+        <Card>
+          <CardHeader>
+            <CardTitle>Audit trail</CardTitle>
+            <CardDescription>Recent decisions.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            {log.map((entry, index) => (
+              <p key={index} className="text-sm text-muted-foreground">{entry}</p>
+            ))}
+          </CardContent>
+        </Card>
       )}
     </>
   );
