@@ -96,6 +96,15 @@ sync with `lib/engines/*` and the demo dataset, not aspirations.
 | Recommendation-to-campaign workflow | ORCH-001 | COMPLETE | `lib/engines/campaign.ts` |
 | Outcome measurement + attribution caveats | LEARN-001 | COMPLETE | `lib/engines/outcome-learning.ts` |
 
+## Agentic Marketing & CRO (Epic 3)
+
+| Capability | Epic | Status | Location |
+|---|---|---|---|
+| Thompson Sampling bandit + sticky routing | MAB-001 | COMPLETE | `lib/bandit/*`, `app/api/bandit/*` |
+| SDR lead enrich pipeline (demo prospects) | SDR-001 | COMPLETE | `lib/engines/sdr-lead-pipeline.ts`, `app/api/sdr/jobs` |
+| Audit report HTML/PDF artifact store | SDR-002 | COMPLETE | `lib/engines/audit-report.ts`, `lib/storage/object-store.ts` |
+| Google Places / Redis / remote object store | SDR/MAB | FUNCTIONAL_BUT_INCOMPLETE | Adapters stubbed until keys configured |
+
 ## Quality Gates
 
 | Capability | Status | Location |
