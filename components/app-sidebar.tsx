@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   ListChecks,
   LogOut,
+  Megaphone,
   Radar,
   Send,
   Settings,
@@ -61,6 +62,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Grow",
     items: [
+      { href: "/demo/marketing", title: "Marketing OS", icon: Megaphone },
       { href: "/demo/opportunities", title: "Opportunities", icon: Target },
       { href: "/demo/content", title: "Content planner", icon: BookOpen },
       { href: "/demo/ai-visibility", title: "AI visibility", icon: Radar },

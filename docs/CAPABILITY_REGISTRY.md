@@ -105,6 +105,20 @@ sync with `lib/engines/*` and the demo dataset, not aspirations.
 | Audit report HTML/PDF artifact store | SDR-002 | COMPLETE | `lib/engines/audit-report.ts`, `lib/storage/object-store.ts` |
 | Google Places / Redis / remote object store | SDR/MAB | FUNCTIONAL_BUT_INCOMPLETE | Adapters stubbed until keys configured |
 
+## Marketing OS (Phases 1–5)
+
+| Capability | Phase | Status | Location |
+|---|---|---|---|
+| Position Report + improvisation + KPIs | 1 | COMPLETE | `lib/marketing/os.ts`, `/demo/marketing/report` |
+| Campaign Pack factory + approvals | 1 | COMPLETE | `lib/marketing/os.ts`, `/demo/marketing/packs` |
+| Marketing OS Home (shadcnblocks-style KPIs) | 1 | COMPLETE | `/demo/marketing` |
+| Outreach CRM + Weekly Growth Pack | 2 | COMPLETE | `/demo/marketing/outreach` |
+| Experiment hooks + learning priors | 2 | COMPLETE | `lib/marketing/os.ts`, `/demo/bandit` |
+| GEO depth (why-not-cited / answer gaps) | 3 | COMPLETE | report + os.geoDepth |
+| Agency multi-client + proposals | 3 | COMPLETE | `/demo/marketing/agency` |
+| GSC/GA4/CMS connector stubs | 4 | FUNCTIONAL_BUT_INCOMPLETE | `os.connectors` (wire credentials next) |
+| Marketing Pods + simulation | 5 | COMPLETE | pods + simulations in OS snapshot |
+
 ## Quality Gates
 
 | Capability | Status | Location |
