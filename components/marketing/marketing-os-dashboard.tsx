@@ -81,8 +81,12 @@ export function MarketingOsDashboard() {
     try {
       const workspace = await apiGenerate(useDemo ? undefined : domain, useDemo || !domain);
       setWs(workspace);
+      const chars = workspace.packs.reduce(
+        (s, p) => s + p.assets.reduce((a, x) => a + x.body.length, 0),
+        0,
+      );
       setMessage(
-        `Generated for ${workspace.brand}. Report HTML saved. ${workspace.packs.length} packs ready for approval.`,
+        `Deep engine: ${workspace.brand} · ${workspace.siteFacts?.length ?? 0} site facts · ${workspace.packs.length} packs · ${chars.toLocaleString()} chars of drafts${workspace.geminiUsed ? " · Gemini hybrid" : " · deterministic"}. HTML report includes full pack bodies.`,
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Generate failed");
@@ -113,7 +117,7 @@ export function MarketingOsDashboard() {
     <>
       <PageHeader
         title="Marketing OS"
-        description="Generate a real Position Report + campaign packs from live analyze (or demo), approve the plan, open the HTML report."
+        description="Deep engine: live/demo analyze → site facts → claim-checked campaign packs → persisted HTML Position Report. Approvals stick. GSC/CMS connectors stay stubs until credentials."
         action={
           <div className="flex flex-wrap gap-2">
             <Button disabled={busy} onClick={() => generate(false)}>
@@ -170,8 +174,30 @@ export function MarketingOsDashboard() {
             <Badge variant="outline">
               packs approved {approvedCount}/{ws.packs.length}
             </Badge>
+            <Badge variant="outline">{ws.siteFacts?.length ?? 0} site facts</Badge>
+            <Badge variant={ws.geminiUsed ? "secondary" : "outline"}>
+              {ws.geminiUsed ? "Gemini hybrid" : "deterministic"}
+            </Badge>
             <span className="text-xs text-muted-foreground">Updated {new Date(ws.updatedAt).toLocaleString()}</span>
           </div>
+
+          {(ws.siteFacts?.length ?? 0) > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Evidence trail</CardTitle>
+                <CardDescription>Facts extracted from crawl + GEO — packs must stay inside these</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
+                  {ws.siteFacts.slice(0, 16).map((fact) => (
+                    <li key={fact} className="truncate border-b border-border/60 py-1 last:border-0">
+                      {fact}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {ws.report.kpis.map((kpi) => (

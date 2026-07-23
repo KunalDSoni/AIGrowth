@@ -117,20 +117,42 @@ export default function MarketingPacksPage() {
                     {pack.status}
                   </Badge>
                   <Badge variant="outline">{pack.effortHours}h</Badge>
+                  <Badge variant="outline">{pack.generation ?? "deterministic"}</Badge>
+                  <Badge variant="outline">
+                    {pack.assets.reduce((n, a) => n + a.body.length, 0)} chars
+                  </Badge>
                 </div>
                 <CardTitle className="text-base">{pack.goal}</CardTitle>
                 <CardDescription>{pack.measurementPlan}</CardDescription>
+                {(pack.siteFactsUsed?.length ?? 0) > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Grounded in {pack.siteFactsUsed!.length} site facts
+                  </p>
+                )}
               </CardHeader>
               <CardContent className="space-y-3">
                 {pack.assets.map((asset) => (
                   <div key={`${pack.id}-${asset.title}`} className="rounded-lg border p-3">
                     <p className="text-sm font-medium">
                       {asset.kind}: {asset.title}
+                      <span className="ml-2 text-xs font-normal text-muted-foreground">
+                        {asset.body.length} chars
+                      </span>
                     </p>
-                    <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap text-xs text-muted-foreground">
+                    <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap text-xs text-muted-foreground">
                       {asset.body}
                     </pre>
-                    {asset.claimChecks.length > 0 && (
+                    {(asset.claimFlags?.length ?? 0) > 0 && (
+                      <ul className="mt-2 space-y-1 text-xs text-amber-700 dark:text-amber-500">
+                        {asset.claimFlags!.map((f, i) => (
+                          <li key={`${f.text}-${i}`}>
+                            [{f.severity}] {f.reason}
+                            {f.text ? ` — “${f.text}”` : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {asset.claimChecks.length > 0 && !(asset.claimFlags?.length) && (
                       <p className="mt-2 text-xs text-amber-700 dark:text-amber-500">
                         Claim checks: {asset.claimChecks.join(" · ")}
                       </p>

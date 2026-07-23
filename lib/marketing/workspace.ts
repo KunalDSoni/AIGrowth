@@ -1,5 +1,5 @@
 /**
- * Persistent Marketing OS workspace — generate once, mutate statuses, survive refresh.
+ * Persistent Marketing OS workspace — deep engine generate, mutate, survive refresh.
  */
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -8,15 +8,11 @@ import type { AnalyzeResult } from "@/lib/analyze/types";
 import { buildLiveIntelligence } from "@/lib/engines/live-intelligence";
 import { getObjectStore } from "@/lib/storage/object-store";
 import {
-  buildCampaignPack,
-  buildChannelMix,
-  buildImprovisation,
-  buildMarketingOS,
-  buildPlan,
-  buildPositionReport,
-  demoAnalyzeForMarketing,
-  recommendTactics,
-} from "@/lib/marketing/os";
+  buildDeepTactics,
+  richDeterministicPackFromTactic,
+  runDeepMarketingEngine,
+} from "@/lib/marketing/deep-engine";
+import { demoAnalyzeForMarketing } from "@/lib/marketing/os";
 import type {
   CampaignPack,
   MarketingOSSnapshot,
@@ -48,6 +44,8 @@ export interface MarketingWorkspace {
   agentLog: MarketingOSSnapshot["agentLog"];
   learning: MarketingOSSnapshot["learning"];
   geoDepth: MarketingOSSnapshot["geoDepth"];
+  siteFacts: string[];
+  geminiUsed: boolean;
   approvals: {
     planApproved: boolean;
     packsApprovedIds: string[];
@@ -80,6 +78,7 @@ export async function resolveAnalyze(input: {
 }): Promise<{ result: AnalyzeResult; source: "live" | "demo" }> {
   if (input.analyze) {
     const result = input.analyze;
+    // Never clobber an existing intelligence profile (services/audiences).
     if (!result.intelligence) result.intelligence = buildLiveIntelligence(result);
     return { result, source: "live" };
   }
@@ -92,8 +91,31 @@ export async function resolveAnalyze(input: {
     }
   }
   const demo = demoAnalyzeForMarketing();
-  demo.intelligence = buildLiveIntelligence(demo);
+  if (!demo.intelligence) demo.intelligence = buildLiveIntelligence(demo);
   return { result: demo, source: "demo" };
+}
+
+function escapeHtml(s: string) {
+  return s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+}
+
+function renderWeeklyHtml(
+  weekly: MarketingWorkspace["weekly"],
+  brand: string,
+  siteFacts: string[],
+): string {
+  return `<!doctype html><html><head><meta charset="utf-8"/><title>Weekly Growth Pack — ${escapeHtml(brand)}</title>
+  <style>body{font-family:ui-sans-serif,system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;color:#111}
+  h1{font-size:24px} .muted{color:#666} ul{line-height:1.6} pre{white-space:pre-wrap;background:#f5f5f5;padding:12px;border-radius:8px;font-size:12px}</style></head><body>
+  <p class="muted">Weekly Growth Pack · ${escapeHtml(weekly.weekOf)}</p>
+  <h1>${escapeHtml(brand)}</h1>
+  <p>${escapeHtml(weekly.summary)}</p>
+  <h2>Wins</h2><ul>${weekly.wins.map((w) => `<li>${escapeHtml(w)}</li>`).join("")}</ul>
+  <h2>Risks</h2><ul>${weekly.risks.map((w) => `<li>${escapeHtml(w)}</li>`).join("")}</ul>
+  <h2>Next actions</h2><ul>${weekly.nextActions.map((w) => `<li>${escapeHtml(w)}</li>`).join("")}</ul>
+  <p class="muted">${escapeHtml(weekly.positionDelta)}</p>
+  <h2>Site facts used</h2><ul>${siteFacts.slice(0, 16).map((f) => `<li>${escapeHtml(f)}</li>`).join("")}</ul>
+  </body></html>`;
 }
 
 export async function generateWorkspace(input: {
@@ -101,48 +123,185 @@ export async function generateWorkspace(input: {
   useDemo?: boolean;
   hoursPerWeek?: number;
   analyze?: AnalyzeResult;
+  useGemini?: boolean;
 }): Promise<MarketingWorkspace> {
   const { result, source } = await resolveAnalyze(input);
   const hours = input.hoursPerWeek ?? 8;
-  const snapshot = buildMarketingOS(result, { hoursPerWeek: hours });
+  const deep = await runDeepMarketingEngine(result, {
+    hoursPerWeek: hours,
+    useGemini: input.useGemini,
+  });
 
-  // Persist a real HTML Position Report artifact
-  const html = renderPositionReportHtml(snapshot.report, snapshot.packs);
+  const html = renderPositionReportHtml(deep.report, deep.packs, deep.context.siteFacts);
   const stored = await getObjectStore().put({
     body: html,
     contentType: "text/html; charset=utf-8",
     key: `position-${result.project.domain}-${Date.now()}`,
   });
 
-  const weeklyHtml = renderWeeklyHtml(snapshot.weekly, snapshot.report);
+  const weekly = {
+    id: `week-${result.project.domain}`,
+    weekOf: new Date().toISOString().slice(0, 10),
+    summary: `${deep.context.brand}: SEO ${deep.context.seoScore}, GEO ${(deep.context.geoMentionRate * 100).toFixed(0)}% (n=${deep.context.geoSample}). ${deep.packs.length} evidence-backed packs drafted.`,
+    wins: deep.packs.slice(0, 3).map((p) => `${p.packType}: ${p.goal}`),
+    risks: deep.context.guardrails.slice(0, 4),
+    nextActions: deep.improvisation.slice(0, 4).map((s) => s.title),
+    positionDelta: result.delta
+      ? `Prior run ${result.delta.baselineAt.slice(0, 10)} → ${result.delta.comparisonAt.slice(0, 10)}: ${result.delta.summary}`
+      : "Baseline workspace established from deep engine",
+  };
+
   const weeklyStored = await getObjectStore().put({
-    body: weeklyHtml,
+    body: renderWeeklyHtml(weekly, deep.context.brand, deep.context.siteFacts),
     contentType: "text/html; charset=utf-8",
     key: `weekly-${result.project.domain}-${Date.now()}`,
   });
+
+  const now = new Date().toISOString();
+  const geminiUsed = deep.packs.some((p) => p.generation === "hybrid" || p.generation === "gemini");
+  const avgChars =
+    deep.packs.reduce((s, p) => s + p.assets.reduce((a, x) => a + x.body.length, 0), 0) /
+    Math.max(1, deep.packs.length);
+
+  const outreach: OutreachTarget[] = deep.context.citedOthers.slice(0, 8).map((domain, i) => ({
+    id: `out-${i}`,
+    domain,
+    class: "third-party",
+    why: `Appeared in GEO citations for ${deep.context.brand} prompts`,
+    status: "todo",
+    pitch: `Resource offer from ${deep.context.brand} (${deep.context.domain}) — checklist for ${deep.context.services[0]}`,
+  }));
+  if (!outreach.length) {
+    outreach.push({
+      id: "out-seed-1",
+      domain: "industry-publication.example",
+      class: "third-party",
+      why: "No live citations yet — seed target for first outreach wave",
+      status: "todo",
+      pitch: `Pitch useful ${deep.context.services[0]} checklist from ${deep.context.brand}`,
+    });
+  }
 
   const ws: MarketingWorkspace = {
     domain: result.project.domain,
     brand: result.project.brandGuess,
     source,
-    updatedAt: new Date().toISOString(),
-    report: snapshot.report,
+    updatedAt: now,
+    report: deep.report,
     reportHtmlUrl: stored.url,
-    packs: snapshot.packs.map((p) => ({ ...p, status: "draft" })),
-    outreach: snapshot.outreach,
-    channelMix: snapshot.channelMix,
-    plan: snapshot.plan,
-    weekly: snapshot.weekly,
+    packs: deep.packs,
+    outreach,
+    channelMix: deep.channelMix,
+    plan: deep.plan,
+    weekly,
     weeklyHtmlUrl: weeklyStored.url,
-    agencyClients: snapshot.agencyClients,
-    pods: snapshot.pods,
-    simulations: snapshot.simulations,
-    connectors: snapshot.connectors,
-    agentLog: snapshot.agentLog,
-    learning: snapshot.learning,
-    geoDepth: snapshot.geoDepth,
+    agencyClients: [
+      {
+        id: "client-self",
+        name: deep.context.brand,
+        domain: deep.context.domain,
+        stage: "active",
+        lastReportAt: now,
+        score: deep.context.seoScore,
+      },
+    ],
+    pods: [
+      {
+        id: `pod-${deep.context.domain}`,
+        clientId: "client-self",
+        status: "awaiting-approval",
+        lastLoopAt: now,
+        nextLoopAt: new Date(Date.now() + 7 * 86400000).toISOString(),
+        loopNotes: [
+          `Deep engine used ${deep.context.siteFacts.length} site facts`,
+          `Drafted ${deep.packs.length} claim-checked packs (${geminiUsed ? "Gemini hybrid" : "deterministic"})`,
+          `Avg pack body ~${Math.round(avgChars)} chars`,
+          "Awaiting human plan approval",
+        ],
+      },
+    ],
+    simulations: deep.tactics.slice(0, 5).map((t) => ({
+      tacticId: t.id,
+      expectedLeadLiftBand: t.priority >= 90 ? "+8–18% directional" : "+3–10% directional",
+      confidence: deep.context.geoSample >= 5 ? "Medium" : "Low",
+      assumptions: ["Stable traffic", "Offer unchanged", "GEO remains directional"],
+      costHours: deep.packs.find((p) => p.tacticId === t.id)?.effortHours ?? 3,
+    })),
+    connectors: [
+      {
+        id: "gsc",
+        label: "Google Search Console",
+        status: process.env.GSC_ACCESS_TOKEN ? "connected" : "not_configured",
+        detail: "Real demand when GSC_* set",
+      },
+      { id: "ga4", label: "GA4", status: "not_configured", detail: "Conversion truth adapter pending" },
+      { id: "wordpress", label: "WordPress", status: "stub", detail: "Draft push on approve — not live yet" },
+      { id: "shopify", label: "Shopify", status: "stub", detail: "Draft push on approve — not live yet" },
+      { id: "gbp", label: "Google Business Profile", status: "stub", detail: "Local publishing later" },
+    ],
+    agentLog: [
+      {
+        agent: "Scout",
+        status: "ok",
+        summary: `Loaded ${source} evidence · ${deep.context.pagesScanned} pages · GEO n=${deep.context.geoSample} · ${deep.context.siteFacts.length} facts`,
+        at: now,
+      },
+      {
+        agent: "Analyst",
+        status: "ok",
+        summary: `Position Report with ${deep.report.chapters.length} chapters from crawl + GEO`,
+        at: now,
+      },
+      {
+        agent: "Strategist",
+        status: "needs_approval",
+        summary: `${deep.tactics.length} tactics · ${hours}h capacity · plan pending`,
+        at: now,
+      },
+      {
+        agent: "Packager",
+        status: "needs_approval",
+        summary: `${deep.packs.length} packs · ~${Math.round(avgChars)} chars/pack · claim-checked`,
+        at: now,
+      },
+      {
+        agent: "Copy Chief",
+        status: "ok",
+        summary: geminiUsed ? "Deterministic drafts + Gemini expand where applicable" : "Deterministic claim-checked drafts (no GEMINI_API_KEY)",
+        at: now,
+      },
+      {
+        agent: "Reporter",
+        status: "ok",
+        summary: "HTML Position + Weekly artifacts stored with evidence trail",
+        at: now,
+      },
+    ],
+    learning: deep.tactics.slice(0, 6).map((t, i) => ({
+      tacticId: t.id,
+      score: Math.max(40, t.priority - i * 3),
+      note: t.evidenceIds.length ? "Evidence-backed prior" : "Structural prior",
+    })),
+    geoDepth: {
+      whyNotCited: [
+        deep.context.geoSample < 5 ? "Insufficient GEO sample" : "Possibly weak first-party citation share",
+        deep.context.citedOthers.length
+          ? `Competitors/others cited: ${deep.context.citedOthers.slice(0, 3).join(", ")}`
+          : "No third-party citations in sample",
+        "Entity/schema inconsistency can suppress citations",
+      ],
+      answerGaps: deep.context.promptsLost.slice(0, 6).length
+        ? deep.context.promptsLost.slice(0, 6)
+        : [`Mention rate ${(deep.context.geoMentionRate * 100).toFixed(0)}% — expand answer sections`],
+      citationClasses: deep.context.citedOthers.length
+        ? [{ class: "other", count: deep.context.citedOthers.length }]
+        : [],
+    },
+    siteFacts: deep.context.siteFacts,
+    geminiUsed,
     approvals: { planApproved: false, packsApprovedIds: [] },
   };
+
   await saveWorkspace(ws);
   return ws;
 }
@@ -152,11 +311,14 @@ export async function updatePackStatus(domain: string, packId: string, status: P
   if (!ws) throw new Error("Workspace not found. Generate the Marketing OS first.");
   const pack = ws.packs.find((p) => p.id === packId);
   if (!pack) throw new Error(`Pack not found: ${packId}`);
+  const blocked = pack.assets.flatMap((a) => a.claimFlags ?? []).filter((f) => f.severity === "block");
+  if (status === "approved" && blocked.length) {
+    throw new Error(`Cannot approve: ${blocked.length} blocking claim(s). Fix copy first.`);
+  }
   pack.status = status;
   if (status === "approved" && !ws.approvals.packsApprovedIds.includes(packId)) {
     ws.approvals.packsApprovedIds.push(packId);
   }
-  // Agent log trail
   ws.agentLog.unshift({
     agent: "Operator",
     status: status === "approved" || status === "shipped" ? "ok" : "needs_approval",
@@ -197,7 +359,6 @@ export async function approvePlan(domain: string) {
     summary: "30/60/90 plan approved by human",
     at: new Date().toISOString(),
   });
-  // Move awaiting pod forward
   for (const pod of ws.pods) {
     if (pod.status === "awaiting-approval") {
       pod.status = "running";
@@ -212,42 +373,17 @@ export async function regeneratePack(domain: string, tacticId: string) {
   const ws = await loadWorkspace(domain);
   if (!ws) throw new Error("Workspace not found.");
   const { result } = await resolveAnalyze({ domain, useDemo: ws.source === "demo" });
-  const tactic = recommendTactics(result).find((t) => t.id === tacticId) ?? recommendTactics(result)[0];
-  const pack = buildCampaignPack(tactic, result);
+  const deep = await runDeepMarketingEngine(result, { hoursPerWeek: 8, useGemini: false });
+  const tactic =
+    deep.tactics.find((t) => t.id === tacticId) ??
+    buildDeepTactics(deep.context).find((t) => t.id === tacticId) ??
+    deep.tactics[0];
+  if (!tactic) throw new Error("No tactic available to regenerate");
+  const pack = richDeterministicPackFromTactic(tactic, deep.context);
   const idx = ws.packs.findIndex((p) => p.tacticId === tacticId);
   if (idx >= 0) ws.packs[idx] = pack;
   else ws.packs.unshift(pack);
+  ws.siteFacts = deep.context.siteFacts;
   await saveWorkspace(ws);
   return ws;
 }
-
-function renderWeeklyHtml(
-  weekly: MarketingWorkspace["weekly"],
-  report: PositionReport,
-): string {
-  return `<!doctype html><html><head><meta charset="utf-8"/><title>Weekly Growth Pack — ${escape(report.brand)}</title>
-  <style>body{font-family:ui-sans-serif,system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;color:#111}
-  h1{font-size:24px} .muted{color:#666} ul{line-height:1.6}</style></head><body>
-  <p class="muted">Weekly Growth Pack · ${escape(weekly.weekOf)}</p>
-  <h1>${escape(report.brand)}</h1>
-  <p>${escape(weekly.summary)}</p>
-  <h2>Wins</h2><ul>${weekly.wins.map((w) => `<li>${escape(w)}</li>`).join("")}</ul>
-  <h2>Risks</h2><ul>${weekly.risks.map((w) => `<li>${escape(w)}</li>`).join("")}</ul>
-  <h2>Next actions</h2><ul>${weekly.nextActions.map((w) => `<li>${escape(w)}</li>`).join("")}</ul>
-  <p class="muted">${escape(weekly.positionDelta)}</p>
-  </body></html>`;
-}
-
-function escape(s: string) {
-  return s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
-}
-
-// re-export helpers used by tests
-export {
-  recommendTactics,
-  buildCampaignPack,
-  buildImprovisation,
-  buildPositionReport,
-  buildChannelMix,
-  buildPlan,
-};

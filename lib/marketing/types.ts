@@ -66,6 +66,7 @@ export interface CampaignAsset {
   title: string;
   body: string;
   claimChecks: string[];
+  claimFlags?: { text: string; reason: string; severity: string }[];
 }
 
 export interface CampaignPack {
@@ -79,6 +80,8 @@ export interface CampaignPack {
   effortHours: number;
   evidenceIds: string[];
   createdAt: string;
+  siteFactsUsed?: string[];
+  generation?: "deterministic" | "gemini" | "hybrid";
 }
 
 export interface ChannelMix {
