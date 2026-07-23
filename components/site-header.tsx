@@ -23,7 +23,7 @@ export function SiteHeader() {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem className="hidden md:block">
-            <BreadcrumbLink href="/demo/dashboard">Northstar Accounting</BreadcrumbLink>
+            <BreadcrumbLink href="/demo/dashboard">OpenGrowth</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator className="hidden md:block" />
           <BreadcrumbItem>
@@ -31,11 +31,6 @@ export function SiteHeader() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <div className="ml-auto flex items-center gap-2">
-        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span className="size-2 rounded-full bg-amber-400" /> Demo data
-        </span>
-      </div>
     </header>
   );
 }

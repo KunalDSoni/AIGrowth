@@ -3,9 +3,9 @@ import { extractBrandSignals } from "@/lib/engines/geo-extract";
 import type { GeoObservation, GeoResult } from "@/lib/analyze/types";
 import type { GeminiVisibilityProvider } from "@/lib/providers/gemini-visibility";
 
-const MAX_PROMPTS = 8;
+const MAX_PROMPTS = 6;
 const CONCURRENCY = 2;
-const TIMEOUT_MS = 20_000;
+const TIMEOUT_MS = 25_000;
 
 export interface RunGeoInput {
   brandGuess: string;

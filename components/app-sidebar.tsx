@@ -100,14 +100,16 @@ export function AppSidebar() {
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">OpenGrowth AI</span>
-                    <span className="truncate text-xs text-muted-foreground">Northstar Accounting</span>
+                    <span className="truncate text-xs text-muted-foreground">Growth workspace</span>
                   </div>
                   <ChevronsUpDown className="ml-auto size-4" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg" align="start">
                 <DropdownMenuLabel className="text-xs text-muted-foreground">Workspace</DropdownMenuLabel>
-                <DropdownMenuItem>Northstar Accounting</DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/demo/dashboard">Dashboard</Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/">← Back to marketing site</Link>

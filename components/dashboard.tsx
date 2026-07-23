@@ -38,7 +38,7 @@ export function Dashboard() {
           <div className="flex items-center gap-3">
             <Badge variant="outline">Sample data</Badge>
             <p className="text-sm text-muted-foreground">
-              Illustrative Northstar Accounting demo — hidden once you run a live analyze.
+              Illustrative sample dataset — hidden once you run a live analyze.
             </p>
           </div>
 

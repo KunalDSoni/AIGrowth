@@ -52,19 +52,35 @@ export function ProjectAnalyze({ onLiveResult }: { onLiveResult?: (hasLive: bool
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url, force: true }),
+        body: JSON.stringify({ url: url.trim(), force: true }),
       });
-      const data = (await response.json()) as AnalyzeResult | { error: string; code?: string };
-      if (!response.ok || "error" in data) {
-        setError("error" in data ? data.error : "Analyze failed");
+      const data = (await response.json()) as AnalyzeResult & { error?: string; code?: string };
+      // Only treat top-level API failures as errors (successful payloads can include per-probe error strings).
+      if (!response.ok || typeof data.error === "string" || !data.project || !data.seo || !data.geo) {
+        setError(typeof data.error === "string" ? data.error : "Analyze failed");
         setLoading(false);
         return;
       }
       setResult(data);
-      localStorage.setItem(LAST_KEY, JSON.stringify(data));
       onLiveResult?.(true);
-    } catch {
-      setError("Could not reach the analyzer. Please try again.");
+      try {
+        // Keep cache small — full Gemini answers can blow localStorage quota.
+        const slim: AnalyzeResult = {
+          ...data,
+          geo: {
+            ...data.geo,
+            observations: data.geo.observations.map((obs) => ({
+              ...obs,
+              rawResponse: (obs.rawResponse ?? "").slice(0, 1200),
+            })),
+          },
+        };
+        localStorage.setItem(LAST_KEY, JSON.stringify(slim));
+      } catch {
+        // Analysis succeeded; cache is optional.
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not reach the analyzer. Please try again.");
     }
     setLoading(false);
   }
@@ -77,7 +93,7 @@ export function ProjectAnalyze({ onLiveResult }: { onLiveResult?: (hasLive: bool
             <Search className="size-4" /> Analyze site (SEO + GEO)
           </CardTitle>
           <CardDescription>
-            Live multi-page crawl plus Gemini AI-visibility probes. Results become your Next actions — not demo data.
+            Live multi-page crawl plus Gemini AI-visibility probes. Results become your Next actions.
           </CardDescription>
         </CardHeader>
         <CardContent>
