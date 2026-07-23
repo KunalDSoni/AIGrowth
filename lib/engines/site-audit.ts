@@ -1,5 +1,6 @@
 import type { AuditIssue, Severity, TechnicalPageObservation } from "@/lib/domain/types";
 import { bandFor, type ReadinessBand, type ReadinessMetrics } from "./readiness";
+import { SEVERITY } from "@/lib/engines/scoring-constants";
 
 export interface PageAudit {
   url: string;
@@ -41,14 +42,6 @@ export interface SiteSummary {
   topIssues: TopIssue[];
 }
 
-const SEVERITY_WEIGHT: Record<Severity, number> = {
-  critical: 4,
-  high: 3,
-  "quick-win": 2,
-  monitor: 1,
-  ignore: 0,
-};
-
 /**
  * Aggregate per-page audits plus site-level issues (robots/sitemap) into one
  * honest site summary. Overall score is the mean of successfully-scanned page
@@ -69,7 +62,7 @@ export function aggregateSite(pages: PageAudit[], siteIssues: AuditIssue[] = [])
     else grouped.set(issue.ruleId, { ruleId: issue.ruleId, title: issue.title, severity: issue.severity, count: 1 });
   }
   const topIssues = [...grouped.values()]
-    .sort((a, b) => SEVERITY_WEIGHT[b.severity] * b.count - SEVERITY_WEIGHT[a.severity] * a.count)
+    .sort((a, b) => SEVERITY[b.severity].rank * b.count - SEVERITY[a.severity].rank * a.count)
     .slice(0, 8);
 
   const worstPages = [...ok]
