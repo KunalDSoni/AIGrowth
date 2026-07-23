@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { KpiStatCard } from "@/components/marketing/kpi-stat-card";
+import { MetricStat } from "@/components/metrics/metric-stat";
+import { geoMentionMetric } from "@/lib/marketing/metrics-view";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -198,6 +200,16 @@ export function MarketingOsDashboard() {
               </CardContent>
             </Card>
           )}
+
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <MetricStat
+              label="Answer-engine mention"
+              metric={geoMentionMetric({
+                brandMentionRate: ws.report.scoreboard.geoMentionRate,
+                sampleSize: ws.report.scoreboard.geoSampleSize,
+              })}
+            />
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {ws.report.kpis.map((kpi) => (
