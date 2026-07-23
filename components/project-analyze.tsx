@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import type { AnalyzeResult } from "@/lib/analyze/types";
 import type { RankedCandidate } from "@/lib/engines/recommendation-bus";
-import { LIVE_ANALYZE_KEY } from "@/lib/client/live-project-key";
+import { LIVE_ANALYZE_KEY, writeLiveAnalyze } from "@/lib/client/live-project";
 import { ActionWorkspace } from "@/components/action-workspace";
 import { OutcomeDeltaPanel } from "@/components/outcome-delta-panel";
 
@@ -76,23 +76,7 @@ export function ProjectAnalyze({ onLiveResult }: { onLiveResult?: (hasLive: bool
       }
       setResult(data);
       onLiveResult?.(true);
-      try {
-        // Keep cache small — full Gemini answers can blow localStorage quota.
-        const slim: AnalyzeResult = {
-          ...data,
-          delta: data.delta ?? null,
-          geo: {
-            ...data.geo,
-            observations: data.geo.observations.map((obs) => ({
-              ...obs,
-              rawResponse: (obs.rawResponse ?? "").slice(0, 1200),
-            })),
-          },
-        };
-        localStorage.setItem(LAST_KEY, JSON.stringify(slim));
-      } catch {
-        // Analysis succeeded; cache is optional.
-      }
+      writeLiveAnalyze(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not reach the analyzer. Please try again.");
     }

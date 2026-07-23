@@ -3,6 +3,7 @@ import { auditCrawledPage } from "@/lib/engines/live-audit";
 import { computeReadiness } from "@/lib/engines/readiness";
 import { parseSitemap, sameOriginUnique } from "@/lib/engines/sitemap";
 import { aggregateSite, type PageAudit } from "@/lib/engines/site-audit";
+import { crawlEvidenceToTechnicalObservation } from "@/lib/engines/technical-audit";
 import type { AuditIssue, CrawledPageEvidence } from "@/lib/domain/types";
 import type { SeoResult } from "@/lib/analyze/types";
 
@@ -51,6 +52,8 @@ function pageFromCrawl(crawl: CrawledPageEvidence): PageAudit {
     ok: true,
     metrics: computeReadiness(issues),
     issues,
+    observation: crawlEvidenceToTechnicalObservation(crawl),
+    robotsDirectives: crawl.robotsDirectives,
   };
 }
 
@@ -169,5 +172,7 @@ export async function runSeoScan(url: string, deps: SeoScanDeps = {}): Promise<S
     finalUrl: home.finalUrl,
     origin,
     sitemapUrlCount: candidates.length,
+    robotsTxt: robots.ok ? robots.text : null,
+    sitemapFound: Boolean(sitemapXml),
   };
 }

@@ -7,7 +7,7 @@
  * placeholders that fail fast with NOT_CONFIGURED rather than fabricating data.
  */
 
-export type DemandSource = "demo" | "search-console" | "keyword-provider" | "serp";
+export type DemandSource = "demo" | "search-console" | "keyword-provider" | "serp" | "crawl-derived";
 
 export interface DemandSignal {
   query: string;

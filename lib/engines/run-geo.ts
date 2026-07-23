@@ -14,6 +14,8 @@ export interface RunGeoInput {
   provider: GeminiVisibilityProvider;
   runId?: string;
   maxPrompts?: number;
+  /** When set, use these exact prompts instead of deriveGeoPrompts. */
+  prompts?: string[];
 }
 
 async function mapLimit<T, R>(items: T[], limit: number, worker: (item: T) => Promise<R>): Promise<R[]> {
@@ -30,11 +32,14 @@ async function mapLimit<T, R>(items: T[], limit: number, worker: (item: T) => Pr
 }
 
 export async function runGeoProbes(input: RunGeoInput): Promise<GeoResult> {
-  const prompts = deriveGeoPrompts({
-    brandGuess: input.brandGuess,
-    domain: input.domain,
-    services: input.services,
-  }).slice(0, input.maxPrompts ?? MAX_PROMPTS);
+  const prompts = (
+    input.prompts ??
+    deriveGeoPrompts({
+      brandGuess: input.brandGuess,
+      domain: input.domain,
+      services: input.services,
+    })
+  ).slice(0, input.maxPrompts ?? MAX_PROMPTS);
 
   const runId = input.runId ?? `geo-${Date.now()}`;
   const errors: string[] = [];

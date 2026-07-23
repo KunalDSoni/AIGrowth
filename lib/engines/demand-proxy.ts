@@ -44,7 +44,13 @@ function relevanceScore(signal: DemandSignal, business: BusinessProfileSnapshot)
 
 function labelsFor(signal: DemandSignal): string[] {
   const labels: string[] = [];
-  labels.push(signal.source === "demo" ? "Demo data" : signal.source);
+  labels.push(
+    signal.source === "demo"
+      ? "Demo data"
+      : signal.source === "crawl-derived"
+        ? "Crawl-derived estimate"
+        : signal.source,
+  );
   if (signal.isEstimated) labels.push("Estimated");
   return labels;
 }

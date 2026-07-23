@@ -181,7 +181,7 @@ export interface AIVisibilityObservation {
   id: string;
   familyId: string;
   exactPrompt: string;
-  platform: "MockGPT" | "MockGemini" | "MockClaude";
+  platform: "MockGPT" | "MockGemini" | "MockClaude" | "Gemini";
   model: string;
   locale: string;
   runId: string;

@@ -6,6 +6,11 @@ import {
   type RecommendationCandidate,
   type RankedCandidate,
 } from "@/lib/engines/recommendation-bus";
+import type { AccessFinding } from "@/lib/engines/ai-access";
+import type { CoverageGap } from "@/lib/engines/site-inventory";
+import type { PromptOpportunity } from "@/lib/engines/demand-proxy";
+import type { CompetitorGap } from "@/lib/engines/competitor-intelligence";
+import { applyGoalWeights, type ProjectGoals } from "@/lib/engines/live-intelligence";
 
 const SEVERITY_SCORE: Record<AuditIssue["severity"], number> = {
   critical: 95,
@@ -40,6 +45,12 @@ export interface NextActionsInput {
   pageIssues: AuditIssue[];
   geo: GeoResult;
   evidence: EvidenceReference[];
+  coverageGaps?: CoverageGap[];
+  aiAccess?: AccessFinding[];
+  searchOpportunities?: PromptOpportunity[];
+  competitorGaps?: CompetitorGap[];
+  contentRefreshUrls?: string[];
+  goals?: ProjectGoals;
 }
 
 export function buildNextActions(input: NextActionsInput): RankedCandidate[] {
@@ -129,5 +140,99 @@ export function buildNextActions(input: NextActionsInput): RankedCandidate[] {
     }
   }
 
-  return rankCandidates(candidates).slice(0, 12);
+  for (const gap of (input.coverageGaps ?? []).slice(0, 3)) {
+    if (!crawlEvidence.length) break;
+    candidates.push({
+      id: `coverage-${gap.service.toLowerCase().replace(/\s+/g, "-")}`,
+      source: "content",
+      title: `Missing page coverage for ${gap.service}`,
+      action: gap.reason,
+      evidenceIds: crawlEvidence.slice(0, 1),
+      scoreComponents: scores({
+        businessRelevance: 85,
+        conversionPotential: 70,
+        discoveryOpportunity: 75,
+        severity: 60,
+        evidenceConfidence: 55,
+        effort: 50,
+      }),
+    });
+  }
+
+  for (const finding of (input.aiAccess ?? []).filter((f) => f.severity === "critical" || f.severity === "warning").slice(0, 2)) {
+    if (!techEvidence.length) break;
+    candidates.push({
+      id: `access-${finding.id}`,
+      source: "technical",
+      title: finding.title,
+      action: `${finding.detail} Caveat: ${finding.caveat}`,
+      evidenceIds: techEvidence.slice(0, 1),
+      scoreComponents: scores({
+        severity: finding.severity === "critical" ? 90 : 65,
+        discoveryOpportunity: 80,
+        evidenceConfidence: 75,
+        urgency: finding.severity === "critical" ? 85 : 55,
+      }),
+    });
+  }
+
+  for (const opp of (input.searchOpportunities ?? []).slice(0, 3)) {
+    if (!crawlEvidence.length) break;
+    candidates.push({
+      id: `search-${opp.id}`,
+      source: "search",
+      title: `Topic opportunity: ${opp.query}`,
+      action: `Create or improve a ${opp.intent} page targeting "${opp.query}" (${opp.labels.join(", ")}).`,
+      evidenceIds: crawlEvidence.slice(0, 1),
+      scoreComponents: scores({
+        businessRelevance: opp.businessRelevance,
+        discoveryOpportunity: opp.demandProxy,
+        conversionPotential: opp.funnelStage === "decision" ? 80 : 55,
+        severity: 45,
+        evidenceConfidence: opp.isEstimated ? 40 : 70,
+        effort: 55,
+      }),
+    });
+  }
+
+  for (const gap of (input.competitorGaps ?? []).slice(0, 2)) {
+    if (!aiEvidence.length) break;
+    candidates.push({
+      id: gap.id,
+      source: "competitor",
+      title: `${gap.competitor} ${gap.gapType} gap`,
+      action: gap.detail,
+      evidenceIds: aiEvidence.slice(0, 2),
+      scoreComponents: scores({
+        discoveryOpportunity: gap.competitorRate,
+        businessRelevance: 70,
+        severity: 55,
+        evidenceConfidence: gap.confidence === "Medium" ? 55 : 40,
+        effort: 60,
+      }),
+    });
+  }
+
+  for (const url of (input.contentRefreshUrls ?? []).slice(0, 2)) {
+    if (!crawlEvidence.length) break;
+    candidates.push({
+      id: `refresh-${url.replace(/[^a-z0-9]+/gi, "-").slice(0, 40)}`,
+      source: "content",
+      title: `Refresh thin/weak page ${url}`,
+      action: "Add proof, clearer CTA, and deeper coverage based on live crawl signals.",
+      evidenceIds: crawlEvidence.slice(0, 1),
+      scoreComponents: scores({
+        businessRelevance: 65,
+        discoveryOpportunity: 55,
+        severity: 40,
+        evidenceConfidence: 60,
+        effort: 45,
+      }),
+    });
+  }
+
+  let ranked = rankCandidates(candidates).slice(0, 16);
+  if (input.goals) ranked = applyGoalWeights(ranked, input.goals).slice(0, 12);
+  else ranked = ranked.slice(0, 12);
+  return ranked;
 }

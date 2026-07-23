@@ -43,6 +43,8 @@ export interface SeoResult {
   scannedAt: string;
   finalUrl: string;
   origin: string;
+  robotsTxt?: string | null;
+  sitemapFound?: boolean;
 }
 
 export interface AnalyzeResult {
@@ -53,6 +55,8 @@ export interface AnalyzeResult {
   nextActions: RankedCandidate[];
   guardrails: string[];
   analyzedAt: string;
+  /** Cross-engine live intelligence derived from this analyze run. */
+  intelligence?: import("@/lib/engines/live-intelligence").LiveIntelligence;
   /** Present when a prior run exists for this domain. */
   delta?: AnalyzeDelta | null;
 }

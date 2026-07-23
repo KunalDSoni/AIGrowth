@@ -47,6 +47,23 @@ export default function AuditPage() {
         </CardContent>
       </Card>
 
+      {(result.intelligence?.aiAccess?.length ?? 0) > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">AI crawler access</CardTitle>
+            <CardDescription>From robots.txt / page directives — not a citation guarantee</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {result.intelligence!.aiAccess.map((f) => (
+              <p key={f.id}>
+                <Badge variant="outline" className="mr-2">{f.severity}</Badge>
+                {f.title}
+              </p>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-3">
         {issues.length === 0 && (
           <Card>

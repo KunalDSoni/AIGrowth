@@ -1,4 +1,4 @@
-import type { AuditIssue, Severity } from "@/lib/domain/types";
+import type { AuditIssue, Severity, TechnicalPageObservation } from "@/lib/domain/types";
 import { bandFor, type ReadinessBand, type ReadinessMetrics } from "./readiness";
 
 export interface PageAudit {
@@ -9,6 +9,9 @@ export interface PageAudit {
   error?: string;
   metrics: ReadinessMetrics;
   issues: AuditIssue[];
+  /** Present when the page was successfully crawled — feeds inventory engines. */
+  observation?: TechnicalPageObservation;
+  robotsDirectives?: string;
 }
 
 export interface TopIssue {

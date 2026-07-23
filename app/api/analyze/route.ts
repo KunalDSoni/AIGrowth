@@ -6,6 +6,8 @@ import { runGeoProbes } from "@/lib/engines/run-geo";
 import { deriveGeoPrompts, extractServicePhrases, guessBrandFromTitle } from "@/lib/engines/prompt-derive";
 import { GeminiNotConfiguredError, GeminiVisibilityProvider } from "@/lib/providers/gemini-visibility";
 import { buildNextActions } from "@/lib/engines/next-actions";
+import { buildLiveIntelligence } from "@/lib/engines/live-intelligence";
+import { loadBusinessOverrides } from "@/lib/projects/business-profile";
 import { domainKey, getProjectStore } from "@/lib/projects/store";
 import type { AnalyzeResult } from "@/lib/analyze/types";
 import type { EvidenceReference } from "@/lib/domain/types";
@@ -23,6 +25,7 @@ const GUARDRAILS = [
   "We do not ask “Who is {brand}?” — models invent company bios from names alone.",
   "Prompts are buyer-intent visibility checks; sample size and exact prompts are always shown.",
   "SEO scores come from crawled page evidence only.",
+  "Search opportunities are crawl-derived estimates until Search Console is connected.",
 ];
 
 function buildEvidence(projectId: string, domain: string, seoPages: number, geoSample: number): EvidenceReference[] {
@@ -124,13 +127,34 @@ export async function POST(request: Request) {
       3,
     );
 
-    // Touch derive so prompts are deterministic for this brand (also used inside runGeoProbes).
     void deriveGeoPrompts({ brandGuess, domain, services });
 
     const geo = await runGeoProbes({ brandGuess, domain, services, provider });
     const projectId = `proj-${domain}`;
     const evidence = buildEvidence(projectId, domain, seo.site.pagesScanned, geo.sampleSize);
     const pageIssues = seo.pages.filter((p) => p.ok).flatMap((p) => p.issues);
+    const overrides = await loadBusinessOverrides(domain);
+
+    const draft: AnalyzeResult = {
+      project: { id: projectId, domain, brandGuess, url: parsed.data.url },
+      seo: {
+        site: seo.site,
+        pages: seo.pages,
+        siteIssues: seo.siteIssues,
+        scannedAt: seo.scannedAt,
+        finalUrl: seo.finalUrl,
+        origin: seo.origin,
+        robotsTxt: seo.robotsTxt,
+        sitemapFound: seo.sitemapFound,
+      },
+      geo,
+      evidence,
+      nextActions: [],
+      guardrails: GUARDRAILS,
+      analyzedAt: new Date().toISOString(),
+    };
+
+    const intelDraft = buildLiveIntelligence(draft, overrides ?? undefined, []);
     const nextActions = buildNextActions({
       projectId,
       domain,
@@ -140,24 +164,16 @@ export async function POST(request: Request) {
       pageIssues,
       geo,
       evidence,
+      coverageGaps: intelDraft.siteInventory.coverageGaps,
+      aiAccess: intelDraft.aiAccess,
+      searchOpportunities: intelDraft.searchOpportunities,
+      competitorGaps: intelDraft.competitorGaps,
+      contentRefreshUrls: intelDraft.contentRefreshIds,
+      goals: intelDraft.goals,
     });
 
-    const result: AnalyzeResult = {
-      project: { id: projectId, domain, brandGuess, url: parsed.data.url },
-      seo: {
-        site: seo.site,
-        pages: seo.pages,
-        siteIssues: seo.siteIssues,
-        scannedAt: seo.scannedAt,
-        finalUrl: seo.finalUrl,
-        origin: seo.origin,
-      },
-      geo,
-      evidence,
-      nextActions,
-      guardrails: GUARDRAILS,
-      analyzedAt: new Date().toISOString(),
-    };
+    const intelligence = buildLiveIntelligence(draft, overrides ?? undefined, nextActions);
+    const result: AnalyzeResult = { ...draft, nextActions, intelligence };
 
     await store.save(result);
     result.delta = await store.loadDelta(domain);
