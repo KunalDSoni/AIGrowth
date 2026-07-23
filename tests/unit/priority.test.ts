@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  calculatePriorityScore,
   calculateRecommendationPriority,
   explainRecommendationScore,
   groupRecommendations,
@@ -76,20 +75,6 @@ function recommendation(id: string, severity: Severity, rank: number): Recommend
     },
   };
 }
-
-describe("priority scoring", () => {
-  it("balances value with effort", () => {
-    expect(
-      calculatePriorityScore({ businessImpact: 10, confidence: 8, strategicRelevance: 9, effort: 8 }),
-    ).toBe(90);
-  });
-
-  it("guards zero effort and caps scores", () => {
-    expect(
-      calculatePriorityScore({ businessImpact: 10, confidence: 10, strategicRelevance: 10, effort: 0 }),
-    ).toBe(100);
-  });
-});
 
 describe("recommendation intelligence scoring", () => {
   it("derives priority from impact and feasibility components", () => {

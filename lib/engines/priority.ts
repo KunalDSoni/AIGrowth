@@ -1,18 +1,5 @@
 import type { AuditIssue, ContentOpportunity, Recommendation, RecommendationScoreComponents, Severity } from "@/lib/domain/types";
 
-export interface PriorityInputs {
-  businessImpact: number;
-  confidence: number;
-  strategicRelevance: number;
-  effort: number;
-}
-
-export function calculatePriorityScore(input: PriorityInputs): number {
-  const effort = Math.max(1, input.effort);
-  const raw = (input.businessImpact * input.confidence * input.strategicRelevance) / effort;
-  return Math.round(Math.min(100, Math.max(0, raw)));
-}
-
 const clamp = (value: number) => Math.min(100, Math.max(0, value));
 
 export function calculateRecommendationPriority(components: RecommendationScoreComponents) {
