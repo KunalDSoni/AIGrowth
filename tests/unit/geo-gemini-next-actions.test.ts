@@ -68,6 +68,7 @@ describe("buildNextActions", () => {
       critical: 1,
       high: 0,
       quickWins: 0,
+      monitors: 0,
       worstPages: [],
       topIssues: [],
     };

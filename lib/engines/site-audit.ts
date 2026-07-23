@@ -36,6 +36,7 @@ export interface SiteSummary {
   critical: number;
   high: number;
   quickWins: number;
+  monitors: number;
   worstPages: WorstPage[];
   topIssues: TopIssue[];
 }
@@ -84,7 +85,8 @@ export function aggregateSite(pages: PageAudit[], siteIssues: AuditIssue[] = [])
     totalIssues: allIssues.length,
     critical: countBy("critical"),
     high: countBy("high"),
-    quickWins: countBy("quick-win") + countBy("monitor"),
+    quickWins: countBy("quick-win"),
+    monitors: countBy("monitor"),
     worstPages,
     topIssues,
   };

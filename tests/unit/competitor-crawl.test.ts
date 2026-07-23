@@ -14,6 +14,7 @@ function seo(partial: Partial<SeoResult["site"]> & { pages?: SeoResult["pages"] 
       critical: 1,
       high: 2,
       quickWins: 1,
+      monitors: 0,
       worstPages: [],
       topIssues: [],
       ...siteOverrides,

@@ -58,6 +58,7 @@ function fixture(): AnalyzeResult {
         critical: 0,
         high: 1,
         quickWins: 0,
+        monitors: 0,
         worstPages: [],
         topIssues: [],
       },

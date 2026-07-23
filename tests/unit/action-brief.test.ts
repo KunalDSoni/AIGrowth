@@ -16,6 +16,7 @@ function fixture(): { result: AnalyzeResult; action: RankedCandidate } {
         critical: 0,
         high: 0,
         quickWins: 0,
+        monitors: 0,
         worstPages: [],
         topIssues: [],
       },

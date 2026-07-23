@@ -84,6 +84,7 @@ export function makeAnalyzeResult(options: AnalyzeInputOptions = {}): AnalyzeRes
     critical,
     high,
     quickWins: 0,
+    monitors: 0,
     worstPages: [],
     topIssues: [],
   };

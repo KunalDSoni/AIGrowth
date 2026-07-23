@@ -39,6 +39,6 @@ export function computeReadiness(issues: AuditIssue[]): ReadinessMetrics {
   const critical = count("critical");
   const high = count("high");
   const monitor = count("monitor");
-  const quickWins = count("quick-win") + monitor;
+  const quickWins = count("quick-win");
   return { score, band: bandFor(score), total: issues.length, critical, high, monitor, quickWins };
 }
