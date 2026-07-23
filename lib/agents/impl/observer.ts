@@ -70,7 +70,7 @@ export function createObserverAgent(deps: ObserverDeps): Agent {
         kind: "create",
         target: { type: "observation" },
         payload: { seo, geo },
-        rationale: `SEO ${seo.score}/100 across ${seo.pagesScanned} pages; answer mention rate ${(geo.mentionRate * 100).toFixed(0)}% on n=${geo.sampleSize} (${geo.model}).`,
+        rationale: `SEO ${seo.score}/100 across ${seo.pagesScanned} pages; answer mention rate ${geo.mentionRate.toFixed(0)}% on n=${geo.sampleSize} (${geo.model}).`,
         evidenceIds: [],
         riskTier: "low",
         dedupeKey: `observation:${day}`,

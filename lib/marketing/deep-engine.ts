@@ -95,8 +95,8 @@ export function extractSiteContext(result: AnalyzeResult): SiteContext {
     ...result.seo.site.topIssues.slice(0, 5).map((i) => `Issue: ${i.title} (${i.severity}, ×${i.count})`),
     ...pages.slice(0, 8).map((p) => `Page ${p.metrics.score}/100: ${p.title ?? p.finalUrl}`),
     `GEO model: ${result.geo.model} · n=${result.geo.sampleSize}`,
-    `GEO mention rate: ${(result.geo.brandMentionRate * 100).toFixed(0)}%`,
-    `First-party citation share: ${(result.geo.firstPartyCitationShare * 100).toFixed(0)}%`,
+    `GEO mention rate: ${result.geo.brandMentionRate.toFixed(0)}%`,
+    `First-party citation share: ${result.geo.firstPartyCitationShare.toFixed(0)}%`,
     ...promptsWon.slice(0, 4).map((p) => `GEO win prompt: ${p}`),
     ...promptsLost.slice(0, 4).map((p) => `GEO miss prompt: ${p}`),
     ...citedOthers.slice(0, 6).map((d) => `Cited other domain: ${d}`),
@@ -211,7 +211,7 @@ export function buildDeepTactics(ctx: SiteContext): MarketingTactic[] {
       channel: "content",
       packType: "FAQ",
       priority: 84,
-      rationale: ctx.promptsLost[0] ?? `Mention rate ${(ctx.geoMentionRate * 100).toFixed(0)}% — expand answers`,
+      rationale: ctx.promptsLost[0] ?? `Mention rate ${ctx.geoMentionRate.toFixed(0)}% — expand answers`,
     },
     {
       id: "tac-home-experiment",
@@ -514,7 +514,7 @@ Book a consultation with ${ctx.brand}.
     asset(
       "measure",
       "Measurement plan",
-      `Baseline: SEO ${ctx.seoScore}, GEO ${(ctx.geoMentionRate * 100).toFixed(0)}% (n=${ctx.geoSample}).\nImplement → wait 14 days → re-run analyze.\nLeading indicators: form fills / booked calls (not vanity rankings).\nDo not claim causation from a single change.`,
+      `Baseline: SEO ${ctx.seoScore}, GEO ${ctx.geoMentionRate.toFixed(0)}% (n=${ctx.geoSample}).\nImplement → wait 14 days → re-run analyze.\nLeading indicators: form fills / booked calls (not vanity rankings).\nDo not claim causation from a single change.`,
     ),
   );
 
@@ -626,7 +626,7 @@ export function buildDeepImprovisation(tactics: MarketingTactic[], ctx: SiteCont
     id: "measure-rerun",
     bucket: "measure",
     title: "Re-run SEO+GEO analyze in 14 days",
-    detail: `Baseline SEO ${ctx.seoScore}, GEO ${(ctx.geoMentionRate * 100).toFixed(0)}% (n=${ctx.geoSample}, ${ctx.geoModel})`,
+    detail: `Baseline SEO ${ctx.seoScore}, GEO ${ctx.geoMentionRate.toFixed(0)}% (n=${ctx.geoSample}, ${ctx.geoModel})`,
     effortHours: 1,
     evidenceIds: ["ev-measure"],
   });
@@ -649,7 +649,7 @@ export function buildDeepReport(
     {
       id: "geo",
       label: "GEO mention rate",
-      value: `${(ctx.geoMentionRate * 100).toFixed(0)}%`,
+      value: `${ctx.geoMentionRate.toFixed(0)}%`,
       hint: `n=${ctx.geoSample} · ${ctx.geoModel}`,
     },
     {
@@ -693,7 +693,7 @@ export function buildDeepReport(
       {
         id: "geo",
         title: "Answer-engine position",
-        body: `Mention rate ${(ctx.geoMentionRate * 100).toFixed(0)}% on ${ctx.geoModel} (n=${ctx.geoSample}).`,
+        body: `Mention rate ${ctx.geoMentionRate.toFixed(0)}% on ${ctx.geoModel} (n=${ctx.geoSample}).`,
         bullets: [
           ctx.geoSample < 5 ? "Sample size low — directional only" : "Sample supports directional decisions",
           ...ctx.promptsWon.slice(0, 3).map((p) => `Win: ${p}`),

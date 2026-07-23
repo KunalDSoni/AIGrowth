@@ -158,7 +158,7 @@ export async function generateWorkspace(input: {
   const weekly = {
     id: `week-${result.project.domain}`,
     weekOf: new Date().toISOString().slice(0, 10),
-    summary: `${deep.context.brand}: SEO ${deep.context.seoScore}, GEO ${(deep.context.geoMentionRate * 100).toFixed(0)}% (n=${deep.context.geoSample}). ${deep.packs.length} evidence-backed packs drafted.`,
+    summary: `${deep.context.brand}: SEO ${deep.context.seoScore}, GEO ${deep.context.geoMentionRate.toFixed(0)}% (n=${deep.context.geoSample}). ${deep.packs.length} evidence-backed packs drafted.`,
     wins: deep.packs.slice(0, 3).map((p) => `${p.packType}: ${p.goal}`),
     risks: deep.context.guardrails.slice(0, 4),
     nextActions: deep.improvisation.slice(0, 4).map((s) => s.title),
@@ -299,7 +299,7 @@ export async function generateWorkspace(input: {
       ],
       answerGaps: deep.context.promptsLost.slice(0, 6).length
         ? deep.context.promptsLost.slice(0, 6)
-        : [`Mention rate ${(deep.context.geoMentionRate * 100).toFixed(0)}% — expand answer sections`],
+        : [`Mention rate ${deep.context.geoMentionRate.toFixed(0)}% — expand answer sections`],
       citationClasses: deep.context.citedOthers.length
         ? [{ class: "other", count: deep.context.citedOthers.length }]
         : [],

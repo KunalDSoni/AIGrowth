@@ -108,7 +108,9 @@ export function makeAnalyzeResult(options: AnalyzeInputOptions = {}): AnalyzeRes
       runId: `geo-${domain}`,
       model: "test-model",
       sampleSize,
-      brandMentionRate: mentionRate,
+      // brandMentionRate is 0-100, matching the real producer (run-geo.ts).
+      // The `brandMentionRate` option is a 0-1 fraction for ergonomics.
+      brandMentionRate: Math.round(mentionRate * 100),
       firstPartyCitationShare: 0,
       observations: Array.from({ length: sampleSize }, (_, i) => ({
         id: `obs-${i}`,
