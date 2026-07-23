@@ -10,6 +10,7 @@ import {
   ChevronsUpDown,
   FileSearch,
   LayoutDashboard,
+  ListChecks,
   LogOut,
   Radar,
   Settings,
@@ -69,6 +70,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/demo/outcomes", title: "Outcomes", icon: TrendingUp },
       { href: "/demo/community", title: "Community playbooks", icon: BarChart3 },
+      { href: "/demo/epics", title: "Epic registry", icon: ListChecks },
     ],
   },
   {

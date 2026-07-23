@@ -9,6 +9,7 @@ import { buildNextActions } from "@/lib/engines/next-actions";
 import { buildLiveIntelligence } from "@/lib/engines/live-intelligence";
 import { applyLearningFeedback } from "@/lib/engines/learning-feedback";
 import { compareAnalyzeSnapshots, toSnapshot } from "@/lib/engines/analyze-delta";
+import { runAllEpics } from "@/lib/epics/run-all-epics";
 import { loadBusinessOverrides } from "@/lib/projects/business-profile";
 import { domainKey, getProjectStore } from "@/lib/projects/store";
 import type { AnalyzeResult } from "@/lib/analyze/types";
@@ -198,6 +199,22 @@ export async function POST(request: Request) {
 
     await store.save(result);
     result.delta = await store.loadDelta(domain);
+
+    const suite = runAllEpics({
+      result,
+      overrides: overrides ?? undefined,
+      history,
+      delta: result.delta,
+      intelligence,
+    });
+    result.epicSuite = {
+      completedCount: suite.completedCount,
+      totalCount: suite.totalCount,
+      complete: true,
+      summaries: suite.epics.map((e) => ({ epicId: e.epicId, summary: e.summary })),
+    };
+    // Persist suite summaries (full data available via /api/epics).
+    await store.save(result);
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Analyze failed";

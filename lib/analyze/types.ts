@@ -59,4 +59,11 @@ export interface AnalyzeResult {
   intelligence?: import("@/lib/engines/live-intelligence").LiveIntelligence;
   /** Present when a prior run exists for this domain. */
   delta?: AnalyzeDelta | null;
+  /** Full EPIC_INDEX suite results (all 138). */
+  epicSuite?: {
+    completedCount: number;
+    totalCount: number;
+    complete: true;
+    summaries: { epicId: string; summary: string }[];
+  };
 }
