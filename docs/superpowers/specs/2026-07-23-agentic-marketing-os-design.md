@@ -140,8 +140,20 @@ Step status: `pending | running | ok | skipped | failed | needs_input`.
 
 ## Persistence
 
-Prisma. SQLite in development, PostgreSQL in production. This retires the existing
+Prisma with PostgreSQL in both development and production. This retires the existing
 "schema written but unused" debt.
+
+**Correction to the original decision.** The spec first called for SQLite in development.
+That is not viable: `prisma/schema.prisma` already declares six enums (`Role`,
+`RecommendationStatus`, `Severity`, `MessageRole`, `EvidenceKind`,
+`EvidenceReliability`), and Prisma does not support enums on SQLite. Prisma also does not
+accept `env()` for a datasource provider, so a per-environment swap is not available
+either. Development therefore runs PostgreSQL locally via Docker.
+
+To keep `npm test` fast and DB-free, persistence sits behind a `RuntimeStore` interface
+with two implementations: `InMemoryRuntimeStore` for unit tests and `PrismaRuntimeStore`
+for real use. Integration tests against PostgreSQL run only when `DATABASE_URL` is set and
+skip otherwise.
 
 Tables: `Client`, `VerticalModel`, `Run`, `RunStep`, `Proposal`, `Artifact`,
 `ArtifactVersion`, `Observation`, `Evidence`, `CostRecord`, `ApprovalEvent`.
