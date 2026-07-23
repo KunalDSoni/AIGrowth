@@ -125,16 +125,38 @@ testable end to end.
 
 ## P0 fix 1 — the 100× error
 
-`run-geo.ts` and `geo-metrics.ts` change their internal rate representation to a
-**0–1 fraction**, and expose the rate as `Metric<"percent">` built via
-`percentFromFraction`. Every `× 100` at a display site is deleted; those sites
-call `formatMetric` instead. The ten sites:
+**Correction to the original diagnosis (found during planning).** The spec first
+proposed converting `run-geo` to a 0–1 fraction. That is backwards. The producer
+`run-geo.ts:81` already emits `brandMentionRate` as **0–100** (`Math.round(x *
+100)`), and ~8 consumers correctly depend on that: `next-actions.ts`,
+`action-brief.ts`, `live-citation-gaps.ts`, `analyze-delta.ts`. Converting to a
+fraction would break all of them and force a migration of persisted `.data`
+JSON. **0–100 is the contract; it stays.**
+
+The real defect is a **two-convention split**: a second family of code was
+written assuming the field is a 0–1 fraction and multiplies by 100 at display
+time, producing "4000%". The fix keeps 0–100 and wraps values with
+`percentValue` (the already-0–100 constructor), deleting the erroneous `× 100`.
+`percentFromFraction` is **not** used for the GEO rate.
+
+**The eleven live display sites** (all in the running path; all display-only, no
+logic bugs):
 
 ```
 lib/marketing/deep-engine.ts  lines 98, 99, 214, 517, 629, 652, 696
 lib/marketing/workspace.ts    lines 161, 302
+lib/marketing/report-html.ts  line 88   (missed by the first list)
 lib/agents/impl/observer.ts   line 73
 ```
+
+**Dead code, deleted not fixed.** `lib/marketing/os.ts` (imported only by
+`tests/unit/marketing-os.test.ts`, reachable from no route) carries the same
+double-multiply *plus* genuine logic bugs (`geoRate < 0.4` / `< 0.5` compared
+against a 0–100 value, so the branch never fires). Rather than repair code
+nothing runs, `os.ts` and its test are removed. `buildMarketingOS`,
+`recommendTactics`, and `buildCampaignPack` are the superseded Phase 1–5
+implementation; the live product uses `deep-engine.ts` + `workspace.ts`. Before
+deletion, confirm no non-test import exists (a grep gate in the task).
 
 Regression test: a GEO run with 2 of 5 brand mentions renders `"40%"`, and the
 string `"4000%"` (or any value > 100%) appears nowhere in the rendered Position
