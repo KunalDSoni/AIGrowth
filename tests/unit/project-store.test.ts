@@ -1,0 +1,66 @@
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { domainKey, createFileProjectStore } from "@/lib/projects/store";
+import type { AnalyzeResult } from "@/lib/analyze/types";
+
+describe("domainKey", () => {
+  it("normalizes host", () => {
+    expect(domainKey("https://www.Dosacc.com/path")).toBe("dosacc.com");
+  });
+});
+
+describe("file project store", () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "og-"));
+  });
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("saves and loads latest by domain", async () => {
+    const store = createFileProjectStore(dir);
+    const result = {
+      project: { id: "p1", domain: "dosacc.com", brandGuess: "Dosacc", url: "https://dosacc.com/" },
+      seo: {
+        site: {
+          score: 90,
+          band: "excellent",
+          pagesScanned: 1,
+          pagesFailed: 0,
+          totalIssues: 0,
+          critical: 0,
+          high: 0,
+          quickWins: 0,
+          worstPages: [],
+          topIssues: [],
+        },
+        pages: [],
+        siteIssues: [],
+        scannedAt: "2026-07-23T00:00:00.000Z",
+        finalUrl: "https://dosacc.com/",
+        origin: "https://dosacc.com",
+      },
+      geo: {
+        runId: "g1",
+        model: "gemini-2.0-flash",
+        sampleSize: 0,
+        brandMentionRate: 0,
+        firstPartyCitationShare: 0,
+        observations: [],
+        errors: [],
+        cost: { provider: "gemini", estimatedUsd: 0, tokens: 0 },
+      },
+      evidence: [],
+      nextActions: [],
+      guardrails: [],
+      analyzedAt: "2026-07-23T00:00:00.000Z",
+    } satisfies AnalyzeResult;
+
+    await store.save(result);
+    const loaded = await store.loadLatest("dosacc.com");
+    expect(loaded?.project.brandGuess).toBe("Dosacc");
+  });
+});
