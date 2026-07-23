@@ -7,6 +7,7 @@ import { auditCrawledPage } from "@/lib/engines/live-audit";
 import { computeReadiness } from "@/lib/engines/readiness";
 import { publicWebsiteSchema } from "@/lib/security/url";
 import type { SeoResult } from "@/lib/analyze/types";
+import { getSiteCrawler, type SiteCrawler } from "@/lib/providers/site-crawler";
 
 export interface CompetitorCrawlResult {
   domain: string;
@@ -60,6 +61,52 @@ export async function crawlCompetitorHomepage(
     hasClearCta: evidence.hasClearCta,
     hasProofSignal: evidence.hasProofSignal,
     crawledAt: evidence.observedAt,
+  };
+}
+
+export interface CompetitorSiteResult extends CompetitorCrawlResult {
+  /** Number of pages crawled for this multi-page comparison. */
+  pagesScanned: number;
+}
+
+/**
+ * OSI-004 — multi-page competitor crawl. Uses the SiteCrawler (Crawlee/http/mock)
+ * to sample several pages instead of the homepage alone, then aggregates the
+ * readiness signal across the sample. Same SSRF + robots guards as the crawler.
+ */
+export async function crawlCompetitorSite(
+  urlInput: string,
+  opts: { maxPages?: number; maxDepth?: number; crawler?: SiteCrawler; fetchImpl?: typeof fetch } = {},
+): Promise<CompetitorSiteResult> {
+  const url = publicWebsiteSchema.parse(urlInput);
+  const crawler = opts.crawler ?? getSiteCrawler();
+  const pages = await crawler.crawlSite(url, {
+    maxPages: opts.maxPages ?? 10,
+    maxDepth: opts.maxDepth ?? 2,
+    sameOriginOnly: true,
+    fetchImpl: opts.fetchImpl,
+  });
+  if (!pages.length) throw new Error("Competitor crawl returned no pages.");
+
+  const issues = pages.flatMap((page) => auditCrawledPage(page));
+  const metrics = computeReadiness(issues);
+  const host = new URL(pages[0].finalUrl).hostname.replace(/^www\./, "");
+  return {
+    domain: host,
+    url,
+    finalUrl: pages[0].finalUrl,
+    title: pages[0].title ?? null,
+    score: metrics.score,
+    band: metrics.band,
+    issueCount: issues.length,
+    critical: metrics.critical,
+    high: metrics.high,
+    wordCount: pages.reduce((sum, p) => sum + p.wordCount, 0),
+    hasStructuredData: pages.some((p) => p.hasStructuredData),
+    hasClearCta: pages.some((p) => p.hasClearCta),
+    hasProofSignal: pages.some((p) => p.hasProofSignal),
+    crawledAt: pages[0].observedAt,
+    pagesScanned: pages.length,
   };
 }
 

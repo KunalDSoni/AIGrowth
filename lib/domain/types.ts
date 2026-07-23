@@ -167,7 +167,8 @@ export interface CrawledPageEvidence {
   /** Heuristic: page mentions proof patterns (case study, testimonial, certified…). */
   hasProofSignal: boolean;
   observedAt: string;
-  source: "safe-crawler";
+  /** Which crawler produced this evidence (e.g. "safe-crawler", "http", "crawlee", "mock"). */
+  source: string;
 }
 
 export interface AIVisibilityPromptFamily {

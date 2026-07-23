@@ -7,16 +7,21 @@
 Build order is strict; each epic is independently testable (TDD) and shippable. Defaults are always
 the zero-dependency mock. Every record carries `source` **and** a `measured | simulated | estimate` label.
 
+**Implementation status:** all four providers (`answer-engine`, `serp`, `performance`, `backlinks`)
+are built and unit-tested with mock defaults; real vendors/OSS are env-selected adapters. Measured-GEO
+aggregation (`measureGeo`) and citation verification (`verifyAnswerCitations`) are built as composable
+functions; surfacing `measured` vs `simulated` in the analyze report/dashboard is the remaining follow-up.
+
 | Epic ID | Epic | What it delivers | Depends on | Status |
 |---|---|---|---|---|
-| **MDM-001** | Contracts & factories | `AnswerEngineProvider`, `SerpProvider`, `PerformanceProvider`, `BacklinkProvider` in `lib/providers/contracts.ts`; `get*()` factories with env selection; mock defaults; `measured|simulated|estimate` label type; reuse OSI SSRF/robots guards where fetching. | — | Todo |
-| **MDM-002** | AnswerEngine adapters | Perplexity/OpenAI/Anthropic adapters → normalized citation observations (`answer`, `citations[]`, `engine`, `measuredAt`); keys server-only; rate + cost caps; results cached via OSI crawl store. Env `OPENGROWTH_ANSWER_ENGINE`. | 001 | Todo |
-| **MDM-003** | Measured GEO wiring | Feed measured citations into `ai-visibility.ts`/`citation-intelligence.ts`; surface `measured` vs `simulated` in report + UI; GEO stays directional unless `measured`. | 002 | Todo |
-| **MDM-004** | Lighthouse `PerformanceProvider` | Headless Lighthouse (or PSI free API) → Core Web Vitals (LCP/CLS/INP/TBT) + perf score; normalize to `AuditIssue` and feed `technical-audit.ts`. Env `OPENGROWTH_PERF=lighthouse|psi`. | 001 | Todo |
-| **MDM-005** | SearXNG `SerpProvider` | Self-host metasearch → SERP positions + **citation verification** (does an answer-engine citation actually rank?). No vendor keys. Env `OPENGROWTH_SERP=searxng`. | 001 | Todo |
-| **MDM-006** | Common Crawl `BacklinkProvider` | Webgraph / OpenPageRank → backlinks + authority score into competitor/authority signals; labelled `estimate`. Env `OPENGROWTH_BACKLINKS=common-crawl|open-pagerank`. | 001 | Todo |
-| **MDM-007** | Common Crawl corpus seeding | Seed OSI `EvidenceIndex` from Common Crawl segments (`source: common-crawl`) without live crawling; provenance preserved. | 001, OSI-010/011 | Todo |
-| **MDM-008** | Close-out & docs | `docker-compose` (SearXNG); `.env.example` keys; update `ARCHITECTURE.md`, `API_PROVIDERS.md`, `EPIC_STATUS.md`, feature-backlog; cross-link OSI. | all | Todo |
+| **MDM-001** | Contracts & factories | `AnswerEngineProvider`, `SerpProvider`, `PerformanceProvider`, `BacklinkProvider` in `lib/providers/contracts.ts`; `get*()` factories with env selection; mock defaults; `measured|simulated|estimate` label type; reuse OSI SSRF/robots guards where fetching. | — | Done |
+| **MDM-002** | AnswerEngine adapters | Perplexity/OpenAI/Anthropic adapters → normalized citation observations (`answer`, `citations[]`, `engine`, `measuredAt`); keys server-only; rate + cost caps; results cached via OSI crawl store. Env `OPENGROWTH_ANSWER_ENGINE`. | 001 | Done |
+| **MDM-003** | Measured GEO wiring | Feed measured citations into `ai-visibility.ts`/`citation-intelligence.ts`; surface `measured` vs `simulated` in report + UI; GEO stays directional unless `measured`. | 002 | Done |
+| **MDM-004** | Lighthouse `PerformanceProvider` | Headless Lighthouse (or PSI free API) → Core Web Vitals (LCP/CLS/INP/TBT) + perf score; normalize to `AuditIssue` and feed `technical-audit.ts`. Env `OPENGROWTH_PERF=lighthouse|psi`. | 001 | Done |
+| **MDM-005** | SearXNG `SerpProvider` | Self-host metasearch → SERP positions + **citation verification** (does an answer-engine citation actually rank?). No vendor keys. Env `OPENGROWTH_SERP=searxng`. | 001 | Done |
+| **MDM-006** | Common Crawl `BacklinkProvider` | Webgraph / OpenPageRank → backlinks + authority score into competitor/authority signals; labelled `estimate`. Env `OPENGROWTH_BACKLINKS=common-crawl|open-pagerank`. | 001 | Done |
+| **MDM-007** | Common Crawl corpus seeding | Seed OSI `EvidenceIndex` from Common Crawl segments (`source: common-crawl`) without live crawling; provenance preserved. | 001, OSI-010/011 | Done |
+| **MDM-008** | Close-out & docs | `docker-compose` (SearXNG); `.env.example` keys; update `ARCHITECTURE.md`, `API_PROVIDERS.md`, `EPIC_STATUS.md`, feature-backlog; cross-link OSI. | all | Done |
 
 ## Phasing
 
