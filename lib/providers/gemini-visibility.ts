@@ -27,7 +27,7 @@ export class GeminiVisibilityProvider {
     const key = options.apiKey ?? process.env.GEMINI_API_KEY ?? "";
     if (!key) throw new GeminiNotConfiguredError();
     this.apiKey = key;
-    this.model = options.model ?? process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
+    this.model = options.model ?? process.env.GEMINI_MODEL ?? "gemini-flash-latest";
     this.fetchImpl = options.fetchImpl ?? fetch;
   }
 
