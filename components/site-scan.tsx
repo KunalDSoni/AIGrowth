@@ -170,10 +170,15 @@ export function SiteScan() {
       const last = localStorage.getItem(LAST_KEY);
       if (last) {
         const parsed = JSON.parse(last) as SiteResult;
-        setResult(parsed);
-        setUrl(parsed.url);
-        const prior = loadHistory().filter((h) => h.origin === parsed.origin && h.at !== parsed.crawledAt);
-        setPrevious(prior.at(-1) ?? null);
+        // Guard against results cached by an older scanner version (different shape).
+        if (parsed && parsed.site && Array.isArray(parsed.pages)) {
+          setResult(parsed);
+          setUrl(parsed.url);
+          const prior = loadHistory().filter((h) => h.origin === parsed.origin && h.at !== parsed.crawledAt);
+          setPrevious(prior.at(-1) ?? null);
+        } else {
+          localStorage.removeItem(LAST_KEY);
+        }
       }
     } catch {
       /* ignore */
@@ -216,7 +221,10 @@ export function SiteScan() {
     setLoading(false);
   }
 
-  const sortedPages = result ? [...result.pages].sort((a, b) => Number(a.ok) - Number(b.ok) || a.score - b.score) : [];
+  const sortedPages =
+    result && Array.isArray(result.pages)
+      ? [...result.pages].sort((a, b) => Number(a.ok) - Number(b.ok) || a.score - b.score)
+      : [];
 
   return (
     <div className="flex flex-col gap-6">
