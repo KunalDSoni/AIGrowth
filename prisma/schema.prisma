@@ -1,0 +1,347 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum RecommendationStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  DISMISSED
+}
+
+enum Severity {
+  CRITICAL
+  HIGH
+  QUICK_WIN
+  MONITOR
+  IGNORE
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum EvidenceKind {
+  CRAWL_OBSERVATION
+  SEARCH_CONSOLE_METRIC
+  ANALYTICS_METRIC
+  KEYWORD_PROVIDER_ESTIMATE
+  SERP_OBSERVATION
+  AI_ANSWER_OBSERVATION
+  CITATION_OBSERVATION
+  COMPETITOR_OBSERVATION
+  USER_SUPPLIED
+  AI_INFERENCE
+  CALCULATED
+  SIMULATED
+}
+
+enum EvidenceReliability {
+  HIGH
+  MEDIUM
+  LOW
+  UNKNOWN
+}
+
+model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  name        String?
+  createdAt   DateTime     @default(now())
+  memberships Membership[]
+  messages    Message[]
+}
+
+model Organization {
+  id          String       @id @default(cuid())
+  name        String
+  createdAt   DateTime     @default(now())
+  memberships Membership[]
+  projects    Project[]
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  role           Role         @default(MEMBER)
+  userId         String
+  organizationId String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+}
+
+model Project {
+  id              String               @id @default(cuid())
+  name            String
+  websiteUrl      String
+  market          String
+  goal            String
+  organizationId  String
+  organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  businessProfile BusinessProfile?
+  pages           WebsitePage[]
+  auditRuns       AuditRun[]
+  recommendations Recommendation[]
+  opportunities   ContentOpportunity[]
+  competitors     Competitor[]
+  snapshots       MetricSnapshot[]
+  activities      ActivityEvent[]
+  integrations    Integration[]
+  conversations   Conversation[]
+  evidence        EvidenceReference[]
+  aiPromptFamilies AIVisibilityPromptFamily[]
+  aiObservations  AIVisibilityObservation[]
+  outcomes       OutcomeLearningRecord[]
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+}
+
+model BusinessProfile {
+  id        String  @id @default(cuid())
+  projectId String  @unique
+  industry  String
+  audience  String
+  tone      String
+  budget    String?
+  maturity  String?
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model WebsitePage {
+  id          String  @id @default(cuid())
+  projectId   String
+  url         String
+  statusCode  Int?
+  title       String?
+  description String?
+  canonical   String?
+  h1Count     Int?
+  wordCount   Int?
+  metadata    Json?
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, url])
+}
+
+model AuditRun {
+  id          String       @id @default(cuid())
+  projectId   String
+  url         String       @default("")
+  status      String
+  provider    String
+  metadata    Json?
+  startedAt   DateTime     @default(now())
+  completedAt DateTime?
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  issues      AuditIssue[]
+}
+
+model AuditIssue {
+  id            String   @id @default(cuid())
+  auditRunId    String
+  category      String
+  severity      Severity
+  title         String
+  description   String
+  affectedPages Int      @default(0)
+  rawData       Json?
+  auditRun      AuditRun @relation(fields: [auditRunId], references: [id], onDelete: Cascade)
+}
+
+model Recommendation {
+  id              String               @id @default(cuid())
+  projectId       String
+  category        String
+  severity        Severity
+  priorityScore   Float
+  scoreComponents Json?
+  scoreExplanation String?
+  evidenceIds     Json?
+  businessImpact  String
+  estimatedEffort String
+  confidence      String
+  explanation     String
+  suggestedAction String
+  assumptions     Json?
+  dependencies    Json?
+  risk            String?
+  completionCriteria Json?
+  measurementPlan Json?
+  status          RecommendationStatus @default(OPEN)
+  completedAt     DateTime?
+  project         Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assets          GeneratedAsset[]
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+}
+
+model EvidenceReference {
+  id             String              @id @default(cuid())
+  projectId      String
+  kind           EvidenceKind
+  source         String
+  sourceRecordId String?
+  observedAt     DateTime?
+  retrievedAt    DateTime            @default(now())
+  validUntil     DateTime?
+  reliability    EvidenceReliability @default(UNKNOWN)
+  isEstimated    Boolean             @default(false)
+  isSimulated    Boolean             @default(false)
+  summary        String
+  normalizedValue Json?
+  metadata       Json?
+  project        Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model AIVisibilityPromptFamily {
+  id          String                    @id @default(cuid())
+  projectId   String
+  topic       String
+  buyingStage String
+  persona     String
+  geography   String
+  prompts     Json
+  project     Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  observations AIVisibilityObservation[]
+}
+
+model AIVisibilityObservation {
+  id                   String                   @id @default(cuid())
+  projectId             String
+  familyId              String
+  exactPrompt           String
+  platform              String
+  model                 String
+  locale                String
+  runId                 String
+  observedAt            DateTime
+  rawResponse           String
+  brandMentions         Json
+  competitorMentions    Json
+  citations             Json
+  sentiment             String
+  extractionConfidence  Float
+  isSimulated           Boolean                  @default(false)
+  project               Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  family                AIVisibilityPromptFamily @relation(fields: [familyId], references: [id], onDelete: Cascade)
+}
+
+model OutcomeLearningRecord {
+  id                     String   @id @default(cuid())
+  projectId              String
+  recommendationId       String
+  recommendationTitle    String
+  baselinePeriod         String
+  implementationDate     DateTime
+  comparisonPeriod       String
+  baselineMetrics        Json
+  comparisonMetrics      Json
+  observedChanges        Json
+  externalEvents         Json
+  attributionLimitations String
+  outcomeConfidence      String
+  followUpAction         String
+  project                Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ContentOpportunity {
+  id           String  @id @default(cuid())
+  projectId    String
+  title        String
+  audience     String
+  intent       String
+  funnelStage  String
+  contentType  String
+  rationale    String
+  suggestedCta String
+  score        Float
+  data         Json?
+  project      Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model GeneratedAsset {
+  id               String          @id @default(cuid())
+  recommendationId String?
+  type             String
+  provider         String
+  status           String
+  original         String?
+  content          String
+  metadata         Json?
+  recommendation   Recommendation? @relation(fields: [recommendationId], references: [id], onDelete: SetNull)
+  createdAt        DateTime        @default(now())
+}
+
+model Competitor {
+  id        String  @id @default(cuid())
+  projectId String
+  name      String
+  domain    String
+  metrics   Json?
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model MetricSnapshot {
+  id         String   @id @default(cuid())
+  projectId  String
+  capturedAt DateTime @default(now())
+  metrics    Json
+  source     String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ActivityEvent {
+  id         String   @id @default(cuid())
+  projectId  String
+  type       String
+  properties Json?
+  createdAt  DateTime @default(now())
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Integration {
+  id        String  @id @default(cuid())
+  projectId String
+  type      String
+  status    String
+  config    Json?
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, type])
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  projectId String
+  title     String?
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  messages  Message[]
+  createdAt DateTime  @default(now())
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  userId         String?
+  role           MessageRole
+  content        String
+  metadata       Json?
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt      DateTime     @default(now())
+}

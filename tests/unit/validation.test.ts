@@ -1,0 +1,3 @@
+import { describe, expect, it } from "vitest";
+import { onboardingSchema, publicWebsiteSchema } from "@/lib/security/url";
+describe("website validation",()=>{it("normalizes public domains",()=>expect(publicWebsiteSchema.parse("example.com")).toBe("https://example.com"));it.each(["http://localhost","http://127.0.0.1","http://10.0.0.4","http://192.168.1.2","file:///etc/passwd"])("blocks unsafe target %s",value=>expect(publicWebsiteSchema.safeParse(value).success).toBe(false));it("validates complete onboarding",()=>expect(onboardingSchema.safeParse({website:"example.com",businessName:"Example",industry:"Services",audience:"Founders",country:"Australia",goal:"Leads",budget:"$0",maturity:"New",tone:"Clear"}).success).toBe(true))});
