@@ -31,11 +31,29 @@ export class GeminiVisibilityProvider {
     this.fetchImpl = options.fetchImpl ?? fetch;
   }
 
+  /**
+   * Answer a GEO visibility prompt. System rules forbid inventing company bios
+   * from a brand name alone — a common failure mode for "Who is X?" questions.
+   */
   async answer(prompt: string, opts: { timeoutMs?: number; retries?: number } = {}): Promise<GeminiAnswer> {
     const timeoutMs = opts.timeoutMs ?? 20_000;
     const retries = opts.retries ?? 2;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${encodeURIComponent(this.apiKey)}`;
     let lastError: Error | null = null;
+
+    const systemInstruction = {
+      parts: [
+        {
+          text: [
+            "You are answering like a public AI shopping/research assistant.",
+            "Do not invent company products, features, founding stories, or positioning from a brand name alone.",
+            "If you lack reliable public knowledge about a company or website, say clearly that you do not have enough reliable information.",
+            "Prefer listing well-known alternatives over fabricating details about an obscure brand.",
+            "When a domain is given in parentheses, treat it as the company's website identity.",
+          ].join(" "),
+        },
+      ],
+    };
 
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
@@ -44,6 +62,7 @@ export class GeminiVisibilityProvider {
           signal: AbortSignal.timeout(timeoutMs),
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
+            systemInstruction,
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             generationConfig: { temperature: 0.2, maxOutputTokens: 1024 },
           }),

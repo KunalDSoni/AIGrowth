@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { deriveGeoPrompts, extractServicePhrases, guessBrandFromTitle } from "@/lib/engines/prompt-derive";
+import { deriveGeoPrompts, extractServicePhrases, guessBrandFromTitle, isHallucinationPronePrompt } from "@/lib/engines/prompt-derive";
 import { extractBrandSignals } from "@/lib/engines/geo-extract";
 
 describe("prompt-derive", () => {
@@ -7,16 +7,22 @@ describe("prompt-derive", () => {
     expect(guessBrandFromTitle("Dosacc | Accounting", "www.dosacc.com")).toBe("Dosacc");
   });
 
-  it("derives 5–8 prompts including brand and service", () => {
+  it("derives buyer-intent prompts without Who/What-is bios", () => {
     const prompts = deriveGeoPrompts({
-      brandGuess: "Dosacc",
+      brandGuess: "DiligenceOS",
       domain: "dosacc.com",
       services: ["bookkeeping", "tax filing"],
     });
     expect(prompts.length).toBeGreaterThanOrEqual(5);
     expect(prompts.length).toBeLessThanOrEqual(8);
-    expect(prompts.some((p) => p.includes("Dosacc"))).toBe(true);
+    expect(prompts.some((p) => p.includes("DiligenceOS") && p.includes("dosacc.com"))).toBe(true);
     expect(prompts.some((p) => /bookkeeping/i.test(p))).toBe(true);
+    expect(prompts.every((p) => !isHallucinationPronePrompt(p))).toBe(true);
+  });
+
+  it("flags bio-style prompts as hallucination-prone", () => {
+    expect(isHallucinationPronePrompt("Who is DiligenceOS?")).toBe(true);
+    expect(isHallucinationPronePrompt("Best bookkeeping providers")).toBe(false);
   });
 
   it("extracts service phrases from text", () => {

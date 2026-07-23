@@ -20,7 +20,8 @@ const schema = z.object({
 
 const GUARDRAILS = [
   "GEO results are directional samples from live model answers — not stable rankings.",
-  "Sample size and exact prompts are always shown; re-runs may vary.",
+  "We do not ask “Who is {brand}?” — models invent company bios from names alone.",
+  "Prompts are buyer-intent visibility checks; sample size and exact prompts are always shown.",
   "SEO scores come from crawled page evidence only.",
 ];
 

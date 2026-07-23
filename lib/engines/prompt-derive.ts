@@ -1,5 +1,9 @@
 /**
  * Derive a thin GEO prompt set from crawl signals (no LLM required).
+ *
+ * Important: do NOT use "Who is {brand}?" style prompts. Models invent confident
+ * company bios from the name alone (e.g. DiligenceOS → fake due-diligence SaaS).
+ * GEO probes should mimic buyer questions used to measure organic AI visibility.
  */
 
 export interface PromptDeriveInput {
@@ -9,7 +13,6 @@ export interface PromptDeriveInput {
 }
 
 const MAX_PROMPTS = 8;
-const MIN_PROMPTS = 5;
 
 export function guessBrandFromTitle(title: string | null | undefined, hostname: string): string {
   const hostLabel = hostname.replace(/^www\./, "").split(".")[0] ?? hostname;
@@ -43,19 +46,29 @@ export function extractServicePhrases(texts: string[], limit = 3): string[] {
 
 export function deriveGeoPrompts(input: PromptDeriveInput): string[] {
   const brand = input.brandGuess.trim() || input.domain;
+  const domain = input.domain.replace(/^www\./, "");
+  const brandRef = `${brand} (${domain})`;
   const services = input.services.length ? input.services.slice(0, 3) : ["professional services"];
   const primary = services[0];
+
+  // Buyer-intent / visibility prompts only — never "Who is {brand}?" bios.
   const prompts = [
-    `Who is ${brand}?`,
     `Best ${primary} providers`,
     `Best ${primary} companies to hire`,
-    `${brand} vs alternatives for ${primary}`,
     `Which company should I hire for ${primary}?`,
+    `Recommended options for ${primary}`,
+    `${brandRef} vs alternatives for ${primary}`,
+    `Providers similar to ${brandRef} for ${primary}`,
   ];
   if (services[1]) prompts.push(`Best ${services[1]} providers`);
-  if (services[2]) prompts.push(`${services[2]} recommendations`);
-  prompts.push(`Is ${brand} a good option for ${primary}?`);
-  return [...new Set(prompts)].slice(0, MAX_PROMPTS).slice(0, Math.max(MIN_PROMPTS, Math.min(MAX_PROMPTS, prompts.length)));
+  if (services[2]) prompts.push(`Top ${services[2]} recommendations`);
+
+  return [...new Set(prompts)].slice(0, MAX_PROMPTS);
+}
+
+/** True when a prompt is a bio-style question we no longer emit (kept for tests/guards). */
+export function isHallucinationPronePrompt(prompt: string): boolean {
+  return /^\s*who is\b/i.test(prompt) || /^\s*what is\b/i.test(prompt);
 }
 
 function capitalize(value: string): string {
