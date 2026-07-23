@@ -25,7 +25,7 @@ export interface ReadinessMetrics {
   quickWins: number;
 }
 
-function bandFor(score: number): ReadinessBand {
+export function bandFor(score: number): ReadinessBand {
   if (score >= 85) return "excellent";
   if (score >= 70) return "good";
   if (score >= 50) return "fair";
