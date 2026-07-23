@@ -49,12 +49,14 @@ export function MarketingOsDashboard() {
 
   const domain = result?.project.domain;
 
+  const wsDomain = ws?.domain;
+
   const refresh = useCallback(async () => {
-    if (!domain && !ws?.domain) return;
-    const d = domain ?? ws!.domain;
+    const d = domain ?? wsDomain;
+    if (!d) return;
     const loaded = await apiLoad(d);
     if (loaded) setWs(loaded);
-  }, [domain, ws?.domain]);
+  }, [domain, wsDomain]);
 
   useEffect(() => {
     if (!ready) return;

@@ -2,7 +2,7 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { getPrismaClient } from "@/lib/db/prisma";
-import type { PrismaClient } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
 import type { AuditIssue, CrawledPageEvidence, EvidenceReference } from "@/lib/domain/types";
 
 export interface AuditRunRecord {
@@ -149,7 +149,7 @@ export class PrismaAuditRunRepository implements AuditRunRepository {
   async save(input: Omit<AuditRunRecord, "id"> & { id?: string }) {
     await this.assertProject(input.projectId);
     const id = input.id ?? undefined;
-    const record = await this.client.$transaction(async (tx: PrismaClient) => {
+    const record = await this.client.$transaction(async (tx: Prisma.TransactionClient) => {
       const run = await tx.auditRun.create({
         data: {
           ...(id ? { id } : {}),
@@ -163,7 +163,7 @@ export class PrismaAuditRunRepository implements AuditRunRepository {
             simulatedIssues: input.simulatedIssues,
             crawl: input.crawl,
             crawlError: input.crawlError,
-          },
+          } as unknown as Prisma.InputJsonValue,
         },
       });
 
