@@ -181,8 +181,8 @@ export function ProjectAnalyze({ onLiveResult }: { onLiveResult?: (hasLive: bool
               GEO observations ({result.geo.observations.length}) — expand
             </summary>
             <div className="mt-3 grid gap-3">
-              {result.geo.observations.map((obs) => (
-                <Card key={obs.id}>
+              {result.geo.observations.map((obs, index) => (
+                <Card key={`${obs.id}-${index}`}>
                   <CardHeader>
                     <div className="flex flex-wrap gap-2">
                       <Badge variant={obs.brandMentioned ? "default" : "outline"}>

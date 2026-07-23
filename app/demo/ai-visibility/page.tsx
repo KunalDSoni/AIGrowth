@@ -49,8 +49,8 @@ export default function AIVisibilityPage() {
       ))}
 
       <div className="grid gap-3">
-        {geo.observations.map((obs) => (
-          <Card key={obs.id}>
+        {geo.observations.map((obs, index) => (
+          <Card key={`${obs.id}-${index}`}>
             <CardHeader>
               <div className="flex flex-wrap gap-2">
                 <Badge variant={obs.brandMentioned ? "default" : "outline"}>

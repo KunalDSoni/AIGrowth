@@ -40,32 +40,36 @@ export async function runGeoProbes(input: RunGeoInput): Promise<GeoResult> {
   const errors: string[] = [];
   let tokens = 0;
 
-  const observations = await mapLimit(prompts, CONCURRENCY, async (prompt): Promise<GeoObservation> => {
-    const id = `${runId}-${Buffer.from(prompt).toString("base64url").slice(0, 12)}`;
-    try {
-      const answer = await input.provider.answer(prompt, { timeoutMs: TIMEOUT_MS });
-      tokens += (answer.usage?.promptTokens ?? 0) + (answer.usage?.completionTokens ?? Math.ceil(answer.rawText.length / 4));
-      const extracted = extractBrandSignals(answer.rawText, input.brandGuess, input.domain);
-      return {
-        id,
-        prompt,
-        rawResponse: answer.rawText,
-        brandMentioned: extracted.brandMentioned,
-        citations: extracted.citations,
-      };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "GEO probe failed";
-      errors.push(`${prompt}: ${message}`);
-      return {
-        id,
-        prompt,
-        rawResponse: "",
-        brandMentioned: false,
-        citations: [],
-        error: message,
-      };
-    }
-  });
+  const observations = await mapLimit(
+    prompts.map((prompt, index) => ({ prompt, index })),
+    CONCURRENCY,
+    async ({ prompt, index }): Promise<GeoObservation> => {
+      const id = `${runId}-${index}-${Buffer.from(prompt).toString("base64url").slice(0, 24)}`;
+      try {
+        const answer = await input.provider.answer(prompt, { timeoutMs: TIMEOUT_MS });
+        tokens += (answer.usage?.promptTokens ?? 0) + (answer.usage?.completionTokens ?? Math.ceil(answer.rawText.length / 4));
+        const extracted = extractBrandSignals(answer.rawText, input.brandGuess, input.domain);
+        return {
+          id,
+          prompt,
+          rawResponse: answer.rawText,
+          brandMentioned: extracted.brandMentioned,
+          citations: extracted.citations,
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "GEO probe failed";
+        errors.push(`${prompt}: ${message}`);
+        return {
+          id,
+          prompt,
+          rawResponse: "",
+          brandMentioned: false,
+          citations: [],
+          error: message,
+        };
+      }
+    },
+  );
 
   const answered = observations.filter((o) => !o.error && o.rawResponse);
   const mentionRate = answered.length
