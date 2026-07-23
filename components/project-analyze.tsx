@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Gauge, Layers, Loader2, Radar, Search, Sparkles } from "lucide-react";
+import { FileText, Gauge, Layers, Loader2, Radar, Search, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { AnalyzeResult } from "@/lib/analyze/types";
+import type { RankedCandidate } from "@/lib/engines/recommendation-bus";
 import { LIVE_ANALYZE_KEY } from "@/lib/client/live-project-key";
+import { ActionWorkspace } from "@/components/action-workspace";
 
 const LAST_KEY = LIVE_ANALYZE_KEY;
 
@@ -26,6 +28,7 @@ export function ProjectAnalyze({ onLiveResult }: { onLiveResult?: (hasLive: bool
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResult | null>(null);
+  const [selectedAction, setSelectedAction] = useState<RankedCandidate | null>(null);
 
   useEffect(() => {
     try {
@@ -171,10 +174,17 @@ export function ProjectAnalyze({ onLiveResult }: { onLiveResult?: (hasLive: bool
                   <p className="text-sm text-muted-foreground">{action.action}</p>
                   <p className="mt-2 text-xs text-muted-foreground">{action.explanation}</p>
                   <p className="mt-1 text-xs text-muted-foreground">Evidence: {action.evidenceIds.join(", ")}</p>
+                  <Button className="mt-3" size="sm" variant="outline" onClick={() => setSelectedAction(action)}>
+                    <FileText className="size-3.5" /> Build brief / draft
+                  </Button>
                 </div>
               ))}
             </CardContent>
           </Card>
+
+          {selectedAction && (
+            <ActionWorkspace result={result} action={selectedAction} onClose={() => setSelectedAction(null)} />
+          )}
 
           <details className="group">
             <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
