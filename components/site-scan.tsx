@@ -255,10 +255,10 @@ export function SiteScan() {
                 </CardContent>
               </Card>
             )}
-            {result.issues.map((issue) => {
+            {result.issues.map((issue, index) => {
               const meta = severityMeta[issue.severity] ?? severityMeta.monitor;
               return (
-                <Card key={issue.id}>
+                <Card key={`${issue.id}-${index}`}>
                   <CardHeader>
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline" className={meta.className}>
