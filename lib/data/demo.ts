@@ -6,6 +6,8 @@ import { buildGrowthSignals, buildUnifiedGrowthDecisions } from "@/lib/engines/g
 import { buildOutcomeLearningRecords, type OutcomeScenario } from "@/lib/engines/outcome-learning";
 import { calculateRecommendationPriority, explainRecommendationScore } from "@/lib/engines/priority";
 import { buildTechnicalAuditIssues } from "@/lib/engines/technical-audit";
+import { extractCitations } from "@/lib/engines/citation-intelligence";
+import { runObservations } from "@/lib/engines/observation-run";
 
 export const project = {
   id: "northstar",
@@ -287,3 +289,21 @@ export const growthSignals = buildGrowthSignals({
 });
 
 export const unifiedGrowthDecisions = buildUnifiedGrowthDecisions(growthSignals);
+
+// CITE-001 — normalized citation intelligence over the demo AI observations.
+export const citationIntelligence = extractCitations({
+  observations: aiVisibilityObservations,
+  firstPartyDomain: "northstaraccounting.com.au",
+  competitors: ["LedgerWise", "ClearBooks AU"],
+});
+
+// AIV-002 — a reproducible timestamped observation run for the top prompt family.
+export const latestObservationRun = runObservations({
+  family: aiVisibilityPromptFamilies[0],
+  runId: "run-northstar-clinic-2026-07-23",
+  observedAt: now,
+  seed: 20260723,
+  brand: "Northstar Accounting",
+  firstPartyDomain: "northstaraccounting.com.au",
+  competitors: ["LedgerWise", "ClearBooks AU"],
+});

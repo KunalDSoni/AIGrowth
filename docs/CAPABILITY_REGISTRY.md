@@ -46,7 +46,8 @@ sync with `lib/engines/*` and the demo dataset, not aspirations.
 
 | Capability | Epic | Status | Location |
 |---|---|---|---|
-| Search-backed opportunity discovery | SEARCH-001 | MOCK_ONLY | `lib/engines/content-gap.ts` |
+| Search-backed opportunity discovery | SEARCH-001 | COMPLETE | `lib/providers/search.ts`, `lib/engines/demand-proxy.ts`, `lib/engines/content-gap.ts` |
+| Search Console / keyword provider adapters | SEARCH-001 | FUNCTIONAL_BUT_INCOMPLETE | `lib/providers/search.ts` (fail-fast placeholders) |
 | Intent / funnel / topic-cluster engine | SEARCH-002 | COMPLETE | `lib/engines/search-intent.ts` |
 | GSC-ready content inventory | CONTENT-001 | COMPLETE | `lib/engines/content-inventory.ts` |
 | Content quality & refresh engine | CONTENT-002 | COMPLETE | `lib/engines/content-inventory.ts` |
@@ -56,7 +57,7 @@ sync with `lib/engines/*` and the demo dataset, not aspirations.
 | Capability | Epic | Status | Location |
 |---|---|---|---|
 | Prompt family + variant generator | AIV-001 | COMPLETE | `lib/engines/prompt-variants.ts` |
-| Timestamped mock observation runner | AIV-002 | MOCK_ONLY | `lib/engines/ai-visibility.ts` |
+| Timestamped observation run lifecycle (status/cost/variance) | AIV-002 | COMPLETE | `lib/engines/observation-run.ts` |
 | Mention/sentiment/variability metrics | AIV-003 | COMPLETE | `lib/engines/ai-visibility.ts` |
 
 ## Citation Intelligence
