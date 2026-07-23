@@ -10,3 +10,7 @@ prisma/*.db
 .opengrowth
 .DS_Store
 **/.DS_Store
+
+# TypeScript incremental build cache
+tsconfig.tsbuildinfo
+*.tsbuildinfo
