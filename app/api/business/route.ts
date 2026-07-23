@@ -48,6 +48,13 @@ const bodySchema = z.object({
       note: z.string().optional(),
     })
     .optional(),
+  competitorCorrection: z
+    .object({
+      name: z.string().min(1),
+      type: z.enum(["business", "organic", "local", "ai-answer", "citation"]),
+      relevant: z.boolean().optional(),
+    })
+    .optional(),
   rerank: z.boolean().optional(),
 });
 
@@ -84,6 +91,14 @@ export async function POST(request: Request) {
       ...parsed.data.confirmation,
       at: new Date().toISOString(),
     });
+  }
+  if (parsed.data.competitorCorrection) {
+    const existing = overrides.competitorCorrections ?? [];
+    const next = [
+      ...existing.filter((c) => c.name.toLowerCase() !== parsed.data.competitorCorrection!.name.toLowerCase()),
+      parsed.data.competitorCorrection,
+    ];
+    overrides = (await saveBusinessOverrides(domain, { ...overrides, competitorCorrections: next })).overrides;
   }
 
   const store = getProjectStore();

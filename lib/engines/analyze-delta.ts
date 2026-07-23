@@ -23,6 +23,8 @@ export interface AnalyzeSnapshot {
   };
   nextActionIds: string[];
   topActionTitles: string[];
+  /** Slim page inventory for crawl diffs. */
+  pages?: { url: string; title: string | null; score: number }[];
 }
 
 export function toSnapshot(result: AnalyzeResult): AnalyzeSnapshot {
@@ -48,6 +50,9 @@ export function toSnapshot(result: AnalyzeResult): AnalyzeSnapshot {
     },
     nextActionIds: result.nextActions.map((a) => a.id),
     topActionTitles: result.nextActions.slice(0, 5).map((a) => a.title),
+    pages: result.seo.pages
+      .filter((p) => p.ok)
+      .map((p) => ({ url: p.finalUrl, title: p.title, score: p.metrics.score })),
   };
 }
 

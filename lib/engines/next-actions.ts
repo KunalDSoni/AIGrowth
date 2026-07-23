@@ -10,6 +10,7 @@ import type { AccessFinding } from "@/lib/engines/ai-access";
 import type { CoverageGap } from "@/lib/engines/site-inventory";
 import type { PromptOpportunity } from "@/lib/engines/demand-proxy";
 import type { CompetitorGap } from "@/lib/engines/competitor-intelligence";
+import type { CitationGapAction } from "@/lib/domain/types";
 import { applyGoalWeights, type ProjectGoals } from "@/lib/engines/live-intelligence";
 
 const SEVERITY_SCORE: Record<AuditIssue["severity"], number> = {
@@ -51,6 +52,7 @@ export interface NextActionsInput {
   competitorGaps?: CompetitorGap[];
   contentRefreshUrls?: string[];
   goals?: ProjectGoals;
+  citationGaps?: CitationGapAction[];
 }
 
 export function buildNextActions(input: NextActionsInput): RankedCandidate[] {
@@ -209,6 +211,25 @@ export function buildNextActions(input: NextActionsInput): RankedCandidate[] {
         severity: 55,
         evidenceConfidence: gap.confidence === "Medium" ? 55 : 40,
         effort: 60,
+      }),
+    });
+  }
+
+  for (const gap of (input.citationGaps ?? []).slice(0, 2)) {
+    if (!citationEvidence.length && !aiEvidence.length) break;
+    candidates.push({
+      id: gap.id,
+      source: "citation",
+      title: gap.title,
+      action: gap.recommendedAction,
+      evidenceIds: gap.evidenceIds.length ? gap.evidenceIds : (citationEvidence.length ? citationEvidence : aiEvidence).slice(0, 2),
+      scoreComponents: scores({
+        discoveryOpportunity: 85,
+        businessRelevance: 80,
+        severity: gap.gapType === "first-party-page" ? 70 : 55,
+        evidenceConfidence: gap.confidence === "Medium" ? 55 : 40,
+        effort: 55,
+        urgency: 60,
       }),
     });
   }

@@ -7,6 +7,8 @@ import { deriveGeoPrompts, extractServicePhrases, guessBrandFromTitle } from "@/
 import { GeminiNotConfiguredError, GeminiVisibilityProvider } from "@/lib/providers/gemini-visibility";
 import { buildNextActions } from "@/lib/engines/next-actions";
 import { buildLiveIntelligence } from "@/lib/engines/live-intelligence";
+import { applyLearningFeedback } from "@/lib/engines/learning-feedback";
+import { compareAnalyzeSnapshots, toSnapshot } from "@/lib/engines/analyze-delta";
 import { loadBusinessOverrides } from "@/lib/projects/business-profile";
 import { domainKey, getProjectStore } from "@/lib/projects/store";
 import type { AnalyzeResult } from "@/lib/analyze/types";
@@ -134,6 +136,9 @@ export async function POST(request: Request) {
     const evidence = buildEvidence(projectId, domain, seo.site.pagesScanned, geo.sampleSize);
     const pageIssues = seo.pages.filter((p) => p.ok).flatMap((p) => p.issues);
     const overrides = await loadBusinessOverrides(domain);
+    const bundle = await store.loadBundle(domain);
+    const history = bundle?.history ?? [];
+    const priorPages = history[0]?.pages;
 
     const draft: AnalyzeResult = {
       project: { id: projectId, domain, brandGuess, url: parsed.data.url },
@@ -154,8 +159,13 @@ export async function POST(request: Request) {
       analyzedAt: new Date().toISOString(),
     };
 
-    const intelDraft = buildLiveIntelligence(draft, overrides ?? undefined, []);
-    const nextActions = buildNextActions({
+    const intelDraft = buildLiveIntelligence(draft, {
+      overrides: overrides ?? undefined,
+      nextActions: [],
+      history,
+      priorPages,
+    });
+    let nextActions = buildNextActions({
       projectId,
       domain,
       brandGuess,
@@ -170,9 +180,20 @@ export async function POST(request: Request) {
       competitorGaps: intelDraft.competitorGaps,
       contentRefreshUrls: intelDraft.contentRefreshIds,
       goals: intelDraft.goals,
+      citationGaps: intelDraft.citationGaps,
     });
 
-    const intelligence = buildLiveIntelligence(draft, overrides ?? undefined, nextActions);
+    if (history[0]) {
+      const preview = compareAnalyzeSnapshots(history[0], toSnapshot({ ...draft, nextActions }));
+      nextActions = applyLearningFeedback(nextActions, preview);
+    }
+
+    const intelligence = buildLiveIntelligence(draft, {
+      overrides: overrides ?? undefined,
+      nextActions,
+      history,
+      priorPages,
+    });
     const result: AnalyzeResult = { ...draft, nextActions, intelligence };
 
     await store.save(result);

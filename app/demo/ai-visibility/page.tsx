@@ -84,6 +84,29 @@ export default function AIVisibilityPage() {
         </Card>
       </div>
 
+      {result.intelligence?.geoMetrics && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Variability & sentiment (AIV-003)</CardTitle>
+            <CardDescription>
+              Confidence {result.intelligence.geoMetrics.confidence} · mention variance{" "}
+              {result.intelligence.geoMetrics.mentionVariance}
+              {result.intelligence.geoMetrics.runToRunMentionStdev !== null
+                ? ` · run-to-run stdev ${result.intelligence.geoMetrics.runToRunMentionStdev}pp`
+                : ""}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2 text-sm">
+            {Object.entries(result.intelligence.geoMetrics.sentimentDistribution).map(([k, v]) => (
+              <Badge key={k} variant="outline">
+                {k}: {v}
+              </Badge>
+            ))}
+            <Badge variant="secondary">Competitor cite rate {result.intelligence.geoMetrics.competitorDomainRate}%</Badge>
+          </CardContent>
+        </Card>
+      )}
+
       {result.guardrails.map((line) => (
         <p key={line} className="text-sm text-muted-foreground">{line}</p>
       ))}

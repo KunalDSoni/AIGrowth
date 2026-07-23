@@ -1,48 +1,55 @@
-import type { AIVisibilityObservation, AIVisibilitySummary, CitationGapAction } from "@/lib/domain/types";
+/**
+ * Citation gap builder — live GEO path (CITE-002).
+ * Demo/Northstar path remains only for legacy unit fixtures via buildCitationGapActionsFromSummaries.
+ */
 
+import type { AIVisibilityObservation, AIVisibilitySummary, CitationGapAction } from "@/lib/domain/types";
+import { buildLiveCitationGaps } from "@/lib/engines/live-citation-gaps";
+import type { GeoResult } from "@/lib/analyze/types";
+
+export { buildLiveCitationGaps };
+
+/** @deprecated Prefer buildLiveCitationGaps for product paths. */
 export function buildCitationGapActions(input: {
   summaries: AIVisibilitySummary[];
   observations: AIVisibilityObservation[];
   firstPartyDomain: string;
   competitors: string[];
+  brand?: string;
 }): CitationGapAction[] {
-  return input.summaries
-    .flatMap((summary) => {
-      const observations = input.observations.filter((observation) => observation.familyId === summary.familyId);
-      const citedDomains = Object.keys(summary.citedDomainFrequency);
-      const missingFirstPartyCitation = !citedDomains.includes(input.firstPartyDomain);
-      const competitorCitations = citedDomains.filter((domain) => input.competitors.some((competitor) => domain.includes(competitor.toLowerCase().replaceAll(" ", ""))));
-      const noBrandMentionMajority = summary.brandMentionFrequency < 50;
-      if (!missingFirstPartyCitation && !noBrandMentionMajority && competitorCitations.length === 0) return [];
+  const brand = input.brand ?? input.firstPartyDomain.split(".")[0] ?? "Brand";
+  // Convert summaries into a minimal GeoResult-shaped signal for the live builder.
+  const geo: GeoResult = {
+    runId: "legacy-summary",
+    model: "legacy",
+    sampleSize: input.observations.length,
+    brandMentionRate: input.summaries[0]?.brandMentionFrequency ?? 0,
+    firstPartyCitationShare: input.summaries.some((s) =>
+      Object.keys(s.citedDomainFrequency).some((d) => d.includes(input.firstPartyDomain.replace(/^www\./, ""))),
+    )
+      ? 50
+      : 0,
+    observations: input.observations.map((o) => ({
+      id: o.id,
+      prompt: o.exactPrompt,
+      rawResponse: o.rawResponse,
+      brandMentioned: o.brandMentions.length > 0,
+      citations: o.citations.map((c) => ({
+        url: c.url,
+        domain: c.domain,
+        classification: c.domain.includes(input.firstPartyDomain.replace(/^www\./, ""))
+          ? ("first-party" as const)
+          : ("other" as const),
+      })),
+    })),
+    errors: [],
+    cost: { provider: "gemini", estimatedUsd: 0, tokens: 0 },
+  };
 
-      const gapType: CitationGapAction["gapType"] = missingFirstPartyCitation ? "first-party-page" : competitorCitations.length ? "source-strengthening" : "third-party-source";
-      const action: CitationGapAction = {
-        id: `citation-gap-${summary.familyId}`,
-        familyId: summary.familyId,
-        title: missingFirstPartyCitation ? `Create a citable source for ${summary.topic}` : `Strengthen Northstar's cited source for ${summary.topic}`,
-        gapType,
-        explanation: missingFirstPartyCitation
-          ? "Simulated AI answers cite other domains but do not cite Northstar for this prompt family."
-          : "Northstar appears in some answers, but competitors or public sources are cited more consistently.",
-        recommendedAction: missingFirstPartyCitation
-          ? "Create or improve a first-party page that directly answers the prompt family with useful, verifiable information and clear service relevance."
-          : "Improve the existing source page with clearer facts, internal links, and visible proof that can be cited truthfully.",
-        evidenceIds: summary.evidenceIds,
-        citedDomains,
-        missingFirstPartyCitation,
-        competitorCitations,
-        assumptions: [
-          "The simulated observations are directional and should be repeated with a real provider before major investment.",
-          "A citable page must help users first; it should not be created only to influence AI answers.",
-          "Structured data should only describe visible, truthful page information.",
-        ],
-        measurementPlan: [
-          "Record the page improvement or publish date.",
-          "Repeat the same prompt family across the same platforms.",
-          "Compare brand mention frequency, first-party citation frequency, and citation stability.",
-        ],
-        confidence: observations.length >= 3 ? "Medium" : "Low",
-      };
-      return [action];
-    });
+  return buildLiveCitationGaps({
+    geo,
+    brand,
+    domain: input.firstPartyDomain,
+    evidenceIds: input.summaries.flatMap((s) => s.evidenceIds).slice(0, 4),
+  });
 }

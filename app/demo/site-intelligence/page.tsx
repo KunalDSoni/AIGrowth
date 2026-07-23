@@ -56,6 +56,21 @@ export default function SiteIntelligencePage() {
         </Card>
       )}
 
+      {result.intelligence?.crawlDiff && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Crawl snapshot diff (CRAWL-008)</CardTitle>
+            <CardDescription>{result.intelligence.crawlDiff.summary}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p>Added: {result.intelligence.crawlDiff.added.length}</p>
+            <p>Removed: {result.intelligence.crawlDiff.removed.length}</p>
+            <p>Changed: {result.intelligence.crawlDiff.changed.length}</p>
+            <p>Unchanged: {result.intelligence.crawlDiff.unchangedCount}</p>
+          </CardContent>
+        </Card>
+      )}
+
       {access.length > 0 && (
         <Card>
           <CardHeader>

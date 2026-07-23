@@ -7,9 +7,11 @@
 import type {
   AIVisibilityObservation,
   BusinessProfileSnapshot,
+  CitationGapAction,
   WebsitePageProfile,
 } from "@/lib/domain/types";
 import type { AnalyzeResult, GeoResult } from "@/lib/analyze/types";
+import type { AnalyzeSnapshot } from "@/lib/engines/analyze-delta";
 import { auditAiAccess, type AccessFinding } from "@/lib/engines/ai-access";
 import {
   applyConfirmation,
@@ -26,16 +28,21 @@ import {
   type ContentInventoryItem,
 } from "@/lib/engines/content-inventory";
 import {
+  correctCompetitor,
   detectCompetitorGaps,
   normalizeCompetitor,
   type CompetitorGap,
   type CompetitorRecord,
+  type CompetitorType,
 } from "@/lib/engines/competitor-intelligence";
 import { buildDemandProxy, type PromptOpportunity } from "@/lib/engines/demand-proxy";
 import { classifyIntent, clusterTopics, type IntentClassification, type TopicCluster } from "@/lib/engines/search-intent";
 import { buildSiteInventory, type SiteInventory } from "@/lib/engines/site-inventory";
 import { generatePromptVariants, type PromptVariant } from "@/lib/engines/prompt-variants";
 import { extractServicePhrases } from "@/lib/engines/prompt-derive";
+import { buildLiveCitationGaps } from "@/lib/engines/live-citation-gaps";
+import { computeGeoVariability, type GeoVariabilityMetrics } from "@/lib/engines/geo-metrics";
+import { diffCrawlPages, type CrawlDiff } from "@/lib/engines/crawl-diff";
 import type { DemandSignal } from "@/lib/providers/search";
 import type { RankedCandidate } from "@/lib/engines/recommendation-bus";
 
@@ -63,12 +70,22 @@ export interface LiveIntelligence {
   intentByQuery: IntentClassification[];
   topicClusters: TopicCluster[];
   citations: CitationIntelligence;
+  citationGaps: CitationGapAction[];
   competitors: CompetitorRecord[];
   competitorGaps: CompetitorGap[];
   aiAccess: AccessFinding[];
   promptVariants: PromptVariant[];
+  geoMetrics: GeoVariabilityMetrics;
+  crawlDiff: CrawlDiff | null;
   campaign: Campaign | null;
   labels: string[];
+}
+
+export interface LiveIntelligenceOptions {
+  overrides?: BusinessProfileOverrides;
+  nextActions?: RankedCandidate[];
+  history?: AnalyzeSnapshot[];
+  priorPages?: { url: string; title: string | null; score: number }[];
 }
 
 export interface BusinessProfileOverrides {
@@ -82,6 +99,7 @@ export interface BusinessProfileOverrides {
   tone?: string;
   goals?: ProjectGoals;
   confirmations?: ConfirmationEvent[];
+  competitorCorrections?: { name: string; type: CompetitorType; relevant?: boolean }[];
 }
 
 const DEFAULT_GOALS: ProjectGoals = {
@@ -187,12 +205,21 @@ function crawlDemandSignals(profile: BusinessProfileSnapshot, geo: GeoResult): D
 
 export function buildLiveIntelligence(
   result: AnalyzeResult,
-  overrides?: BusinessProfileOverrides,
+  overridesOrOptions?: BusinessProfileOverrides | LiveIntelligenceOptions,
   nextActionsOverride?: RankedCandidate[],
 ): LiveIntelligence {
+  const options: LiveIntelligenceOptions =
+    overridesOrOptions && ("overrides" in overridesOrOptions || "history" in overridesOrOptions || "nextActions" in overridesOrOptions || "priorPages" in overridesOrOptions)
+      ? (overridesOrOptions as LiveIntelligenceOptions)
+      : { overrides: overridesOrOptions as BusinessProfileOverrides | undefined, nextActions: nextActionsOverride };
+
+  // Back-compat: third arg still accepted when second is overrides-only.
+  if (nextActionsOverride && !options.nextActions) options.nextActions = nextActionsOverride;
+
+  const overrides = options.overrides;
   const profile = inferBusinessProfile(result, overrides);
   const goals = overrides?.goals ?? DEFAULT_GOALS;
-  const actions = nextActionsOverride ?? result.nextActions ?? [];
+  const actions = options.nextActions ?? result.nextActions ?? [];
   const observations = result.seo.pages
     .filter((p) => p.ok && p.observation)
     .map((p) => p.observation!);
@@ -212,7 +239,10 @@ export function buildLiveIntelligence(
       source: "live-geo-citation",
       confidence: 55,
     }),
-  );
+  ).map((record) => {
+    const fix = overrides?.competitorCorrections?.find((c) => c.name.toLowerCase() === record.name.toLowerCase());
+    return fix ? correctCompetitor(record, { type: fix.type, relevant: fix.relevant }) : record;
+  });
 
   let graph = buildBusinessGraph({
     business: profile,
@@ -315,6 +345,23 @@ export function buildLiveIntelligence(
     firstPartyDomain: result.project.domain,
   });
 
+  const citationGaps = buildLiveCitationGaps({
+    geo: result.geo,
+    brand: result.project.brandGuess,
+    domain: result.project.domain,
+    evidenceIds: result.evidence
+      .filter((e) => e.kind === "AI_ANSWER_OBSERVATION" || e.kind === "CITATION_OBSERVATION")
+      .map((e) => e.id),
+  });
+
+  const geoMetrics = computeGeoVariability(result.geo, options.history ?? []);
+
+  const currentPages = result.seo.pages
+    .filter((p) => p.ok)
+    .map((p) => ({ url: p.finalUrl, title: p.title, score: p.metrics.score }));
+  const priorPages = options.priorPages ?? options.history?.[0]?.pages;
+  const crawlDiff = priorPages?.length ? diffCrawlPages(priorPages, currentPages) : null;
+
   const pageRobots: Record<string, string> = {};
   for (const page of result.seo.pages) {
     if (page.ok && page.robotsDirectives) pageRobots[page.finalUrl] = page.robotsDirectives;
@@ -364,16 +411,20 @@ export function buildLiveIntelligence(
     intentByQuery,
     topicClusters,
     citations,
+    citationGaps,
     competitors,
     competitorGaps,
     aiAccess,
     promptVariants,
+    geoMetrics,
+    crawlDiff,
     campaign,
     labels: [
       "Intelligence derived from live crawl + Gemini GEO only",
       "Search demand is crawl-derived estimates — not Search Console",
       "Content performance metrics are unavailable until GSC is connected",
       "Competitor list is citation-based, not a full market crawl",
+      ...geoMetrics.labels,
     ],
   };
 }

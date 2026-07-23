@@ -129,7 +129,7 @@ export function RecommendationDetail({ item }: { item: Recommendation }) {
               <CardDescription>Evidence provenance</CardDescription>
               <CardTitle>Sources behind the action</CardTitle>
             </div>
-            <EvidenceDrawer references={evidence} affectedAssets={[item.assetType]} />
+            <EvidenceDrawer evidence={evidence} affectedAssets={[item.assetType]} />
           </div>
         </CardHeader>
         <CardContent>

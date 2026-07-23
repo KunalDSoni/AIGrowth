@@ -38,7 +38,11 @@ export default function OpportunitiesPage() {
                 <Badge variant="outline">{action.source}</Badge>
                 <Badge variant="outline">{action.bucket}</Badge>
               </div>
-              <CardTitle className="text-base">{action.title}</CardTitle>
+              <CardTitle className="text-base">
+                <a className="hover:underline" href={`/demo/recommendations/${encodeURIComponent(action.id)}`}>
+                  {action.title}
+                </a>
+              </CardTitle>
               <CardDescription>{action.action}</CardDescription>
             </CardHeader>
             <CardContent className="text-xs text-muted-foreground">

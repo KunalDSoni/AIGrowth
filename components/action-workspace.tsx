@@ -4,9 +4,11 @@ import { useState } from "react";
 import { Check, FileText, Loader2, Sparkles, X } from "lucide-react";
 import type { RankedCandidate } from "@/lib/engines/recommendation-bus";
 import type { AnalyzeResult } from "@/lib/analyze/types";
+import { EvidenceDrawer } from "@/components/evidence-drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 
 interface BriefResponse {
   brief: {
@@ -179,6 +181,14 @@ export function ActionWorkspace({
         </div>
 
         <div className="flex-1 space-y-4 overflow-auto p-4">
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/demo/recommendations/${encodeURIComponent(action.id)}`}>Open score detail</Link>
+            </Button>
+          </div>
+
+          <EvidenceDrawer evidence={result.evidence} evidenceIds={action.evidenceIds} title="Evidence for this action" />
+
           {!briefPkg && !draft && (
             <Card>
               <CardHeader>

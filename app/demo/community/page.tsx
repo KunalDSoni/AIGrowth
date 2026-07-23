@@ -1,15 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { EmptyLiveState } from "@/components/empty-live-state";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLiveAnalyze } from "@/lib/client/live-project";
+import type { Campaign } from "@/lib/engines/campaign";
 
 export default function CommunityPage() {
   const { result, ready, hasLive } = useLiveAnalyze();
+  const [campaign, setCampaign] = useState<Campaign | null>(null);
+  const [handoff, setHandoff] = useState<{ status: string; reason?: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+
   if (!ready) return null;
   if (!hasLive || !result) {
     return (
@@ -20,9 +26,29 @@ export default function CommunityPage() {
     );
   }
 
-  const campaign = result.intelligence?.campaign;
+  const seed = campaign ?? result.intelligence?.campaign;
 
-  if (!campaign) {
+  async function sync(body: Record<string, unknown>) {
+    setBusy(true);
+    try {
+      const response = await fetch("/api/campaign", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ domain: result!.project.domain, ...body }),
+      });
+      const data = (await response.json()) as {
+        campaign?: Campaign;
+        handoff?: { status: string; reason?: string };
+        error?: string;
+      };
+      if (data.campaign) setCampaign(data.campaign);
+      if (data.handoff) setHandoff(data.handoff);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!seed) {
     return (
       <EmptyLiveState
         title="No orchestration campaign"
@@ -34,18 +60,43 @@ export default function CommunityPage() {
   return (
     <>
       <PageHeader
-        title={`Campaign · ${campaign.name}`}
-        description="ORCH-001 mock orchestration from live Next actions. Nothing auto-publishes."
-        action={<Badge variant="secondary">{campaign.tasks.length} tasks</Badge>}
+        title={`Campaign · ${seed.name}`}
+        description="ORCH-001 orchestration from live Next actions. Approve gates before export."
+        action={<Badge variant="secondary">{seed.tasks.length} tasks</Badge>}
       />
+
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" disabled={busy} onClick={() => sync({ rebuild: true })}>
+          Rebuild from Next actions
+        </Button>
+        <Button
+          type="button"
+          disabled={busy}
+          onClick={() => sync({ export: true, baseUrl: result.project.url })}
+        >
+          Export handoff
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="/demo/dashboard">Dashboard</Link>
+        </Button>
+      </div>
+
+      {handoff && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Export: {handoff.status}</CardTitle>
+            <CardDescription>{handoff.reason ?? "Ready when gates and tasks are complete."}</CardDescription>
+          </CardHeader>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Objective</CardTitle>
-          <CardDescription>{campaign.objective}</CardDescription>
+          <CardDescription>{seed.objective}</CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          UTM: source={campaign.utm.source} · medium={campaign.utm.medium} · campaign={campaign.utm.campaign}
+          UTM: source={seed.utm.source} · medium={seed.utm.medium} · campaign={seed.utm.campaign}
         </CardContent>
       </Card>
 
@@ -55,10 +106,22 @@ export default function CommunityPage() {
             <CardTitle className="text-base">Approval gates</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {campaign.gates.map((g) => (
-              <div key={g.id} className="flex items-center justify-between text-sm">
+            {seed.gates.map((g) => (
+              <div key={g.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
                 <span>{g.label}</span>
-                <Badge variant="outline">{g.state}</Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">{g.state}</Badge>
+                  {g.state !== "approved" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() => sync({ gateId: g.id, gateState: "approved" })}
+                    >
+                      Approve
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
           </CardContent>
@@ -68,20 +131,30 @@ export default function CommunityPage() {
             <CardTitle className="text-base">Tasks</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {campaign.tasks.map((t) => (
-              <div key={t.id} className="text-sm">
-                <Badge variant="secondary" className="mr-2">{t.assetType}</Badge>
-                {t.title}
-                <span className="ml-2 text-xs text-muted-foreground">{t.status}</span>
+            {seed.tasks.map((t) => (
+              <div key={t.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <div>
+                  <Badge variant="secondary" className="mr-2">{t.assetType}</Badge>
+                  {t.title}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">{t.status}</Badge>
+                  {t.status !== "done" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() => sync({ taskId: t.id, taskStatus: "done" })}
+                    >
+                      Mark done
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
           </CardContent>
         </Card>
       </div>
-
-      <Button asChild variant="outline">
-        <Link href="/demo/dashboard">Execute actions from Dashboard</Link>
-      </Button>
     </>
   );
 }
