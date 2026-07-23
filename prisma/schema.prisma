@@ -86,29 +86,29 @@ model Membership {
 }
 
 model Project {
-  id              String               @id @default(cuid())
-  name            String
-  websiteUrl      String
-  market          String
-  goal            String
-  organizationId  String
-  organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  businessProfile BusinessProfile?
-  pages           WebsitePage[]
-  auditRuns       AuditRun[]
-  recommendations Recommendation[]
-  opportunities   ContentOpportunity[]
-  competitors     Competitor[]
-  snapshots       MetricSnapshot[]
-  activities      ActivityEvent[]
-  integrations    Integration[]
-  conversations   Conversation[]
-  evidence        EvidenceReference[]
+  id               String                     @id @default(cuid())
+  name             String
+  websiteUrl       String
+  market           String
+  goal             String
+  organizationId   String
+  organization     Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  businessProfile  BusinessProfile?
+  pages            WebsitePage[]
+  auditRuns        AuditRun[]
+  recommendations  Recommendation[]
+  opportunities    ContentOpportunity[]
+  competitors      Competitor[]
+  snapshots        MetricSnapshot[]
+  activities       ActivityEvent[]
+  integrations     Integration[]
+  conversations    Conversation[]
+  evidence         EvidenceReference[]
   aiPromptFamilies AIVisibilityPromptFamily[]
-  aiObservations  AIVisibilityObservation[]
-  outcomes       OutcomeLearningRecord[]
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
+  aiObservations   AIVisibilityObservation[]
+  outcomes         OutcomeLearningRecord[]
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
 }
 
 model BusinessProfile {
@@ -164,81 +164,81 @@ model AuditIssue {
 }
 
 model Recommendation {
-  id              String               @id @default(cuid())
-  projectId       String
-  category        String
-  severity        Severity
-  priorityScore   Float
-  scoreComponents Json?
-  scoreExplanation String?
-  evidenceIds     Json?
-  businessImpact  String
-  estimatedEffort String
-  confidence      String
-  explanation     String
-  suggestedAction String
-  assumptions     Json?
-  dependencies    Json?
-  risk            String?
+  id                 String               @id @default(cuid())
+  projectId          String
+  category           String
+  severity           Severity
+  priorityScore      Float
+  scoreComponents    Json?
+  scoreExplanation   String?
+  evidenceIds        Json?
+  businessImpact     String
+  estimatedEffort    String
+  confidence         String
+  explanation        String
+  suggestedAction    String
+  assumptions        Json?
+  dependencies       Json?
+  risk               String?
   completionCriteria Json?
-  measurementPlan Json?
-  status          RecommendationStatus @default(OPEN)
-  completedAt     DateTime?
-  project         Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  assets          GeneratedAsset[]
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
+  measurementPlan    Json?
+  status             RecommendationStatus @default(OPEN)
+  completedAt        DateTime?
+  project            Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assets             GeneratedAsset[]
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
 }
 
 model EvidenceReference {
-  id             String              @id @default(cuid())
-  projectId      String
-  kind           EvidenceKind
-  source         String
-  sourceRecordId String?
-  observedAt     DateTime?
-  retrievedAt    DateTime            @default(now())
-  validUntil     DateTime?
-  reliability    EvidenceReliability @default(UNKNOWN)
-  isEstimated    Boolean             @default(false)
-  isSimulated    Boolean             @default(false)
-  summary        String
+  id              String              @id @default(cuid())
+  projectId       String
+  kind            EvidenceKind
+  source          String
+  sourceRecordId  String?
+  observedAt      DateTime?
+  retrievedAt     DateTime            @default(now())
+  validUntil      DateTime?
+  reliability     EvidenceReliability @default(UNKNOWN)
+  isEstimated     Boolean             @default(false)
+  isSimulated     Boolean             @default(false)
+  summary         String
   normalizedValue Json?
-  metadata       Json?
-  project        Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  metadata        Json?
+  project         Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model AIVisibilityPromptFamily {
-  id          String                    @id @default(cuid())
-  projectId   String
-  topic       String
-  buyingStage String
-  persona     String
-  geography   String
-  prompts     Json
-  project     Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id           String                    @id @default(cuid())
+  projectId    String
+  topic        String
+  buyingStage  String
+  persona      String
+  geography    String
+  prompts      Json
+  project      Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   observations AIVisibilityObservation[]
 }
 
 model AIVisibilityObservation {
   id                   String                   @id @default(cuid())
-  projectId             String
-  familyId              String
-  exactPrompt           String
-  platform              String
-  model                 String
-  locale                String
-  runId                 String
-  observedAt            DateTime
-  rawResponse           String
-  brandMentions         Json
-  competitorMentions    Json
-  citations             Json
-  sentiment             String
-  extractionConfidence  Float
-  isSimulated           Boolean                  @default(false)
-  project               Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  family                AIVisibilityPromptFamily @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  projectId            String
+  familyId             String
+  exactPrompt          String
+  platform             String
+  model                String
+  locale               String
+  runId                String
+  observedAt           DateTime
+  rawResponse          String
+  brandMentions        Json
+  competitorMentions   Json
+  citations            Json
+  sentiment            String
+  extractionConfidence Float
+  isSimulated          Boolean                  @default(false)
+  project              Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  family               AIVisibilityPromptFamily @relation(fields: [familyId], references: [id], onDelete: Cascade)
 }
 
 model OutcomeLearningRecord {
@@ -344,4 +344,115 @@ model Message {
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt      DateTime     @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Agent runtime (sub-project 1). Runs, steps and proposals for the agency OS.
+// ---------------------------------------------------------------------------
+
+enum AgentRunStatus {
+  PENDING
+  RUNNING
+  BLOCKED
+  DONE
+  FAILED
+}
+
+enum AgentStepStatus {
+  PENDING
+  RUNNING
+  OK
+  SKIPPED
+  FAILED
+  NEEDS_INPUT
+}
+
+enum AgentProposalStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  SUPERSEDED
+}
+
+model AgentClient {
+  id                String          @id @default(cuid())
+  domain            String          @unique
+  brand             String
+  cadenceHours      Int             @default(168)
+  nextRunAt         DateTime?
+  leaseUntil        DateTime?
+  maxTokensPerRun   Int             @default(50000)
+  maxApiCallsPerRun Int             @default(40)
+  maxMsPerRun       Int             @default(120000)
+  createdAt         DateTime        @default(now())
+  runs              AgentRun[]
+  proposals         AgentProposal[]
+
+  @@index([nextRunAt, leaseUntil])
+}
+
+model AgentRun {
+  id          String          @id @default(cuid())
+  clientId    String
+  client      AgentClient     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  status      AgentRunStatus  @default(PENDING)
+  trigger     String
+  startedAt   DateTime        @default(now())
+  finishedAt  DateTime?
+  maxMs       Int
+  maxTokens   Int
+  maxApiCalls Int
+  spentMs     Int             @default(0)
+  spentTokens Int             @default(0)
+  spentCalls  Int             @default(0)
+  steps       AgentRunStep[]
+  proposals   AgentProposal[]
+
+  @@index([clientId, status])
+}
+
+model AgentRunStep {
+  id         String          @id @default(cuid())
+  runId      String
+  run        AgentRun        @relation(fields: [runId], references: [id], onDelete: Cascade)
+  agentName  String
+  ordinal    Int
+  status     AgentStepStatus @default(PENDING)
+  attempts   Int             @default(0)
+  startedAt  DateTime?
+  finishedAt DateTime?
+  costMs     Int             @default(0)
+  costTokens Int             @default(0)
+  costCalls  Int             @default(0)
+  error      String?
+  notes      String[]
+
+  @@unique([runId, ordinal])
+  @@index([runId, status])
+}
+
+model AgentProposal {
+  id              String              @id @default(cuid())
+  clientId        String
+  client          AgentClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  runId           String
+  run             AgentRun            @relation(fields: [runId], references: [id], onDelete: Cascade)
+  agentName       String
+  kind            String
+  targetType      String
+  targetId        String?
+  payload         Json
+  rationale       String
+  evidenceIds     String[]
+  riskTier        String
+  dedupeKey       String
+  estimatedImpact String
+  effortHours     Float
+  costToProduce   Float
+  status          AgentProposalStatus @default(PENDING)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@unique([clientId, dedupeKey])
+  @@index([clientId, status])
 }
