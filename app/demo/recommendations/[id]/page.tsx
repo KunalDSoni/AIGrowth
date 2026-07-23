@@ -1,8 +1,6 @@
-import { EmptyLiveState } from "@/components/empty-live-state";
+"use client";
 
-export function generateStaticParams() {
-  return [];
-}
+import { EmptyLiveState } from "@/components/empty-live-state";
 
 export default function RecommendationPage() {
   return (

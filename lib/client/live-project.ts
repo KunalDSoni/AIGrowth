@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import type { AnalyzeResult } from "@/lib/analyze/types";
+import { LIVE_ANALYZE_KEY } from "@/lib/client/live-project-key";
 
-export const LIVE_ANALYZE_KEY = "opengrowth:analyze:last";
+export { LIVE_ANALYZE_KEY };
 
 export function readLiveAnalyze(): AnalyzeResult | null {
   if (typeof window === "undefined") return null;

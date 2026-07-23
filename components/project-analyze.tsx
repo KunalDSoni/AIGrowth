@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { AnalyzeResult } from "@/lib/analyze/types";
-import { LIVE_ANALYZE_KEY } from "@/lib/client/live-project";
+import { LIVE_ANALYZE_KEY } from "@/lib/client/live-project-key";
 
 const LAST_KEY = LIVE_ANALYZE_KEY;
 
