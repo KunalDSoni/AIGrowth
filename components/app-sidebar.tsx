@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BadgeCheck,
   BarChart3,
   BookOpen,
   Bot,
@@ -153,21 +152,18 @@ export function AppSidebar() {
                     <AvatarFallback className="rounded-lg">KA</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">Demo user</span>
-                    <span className="truncate text-xs text-muted-foreground">Free plan · 2/5 assets</span>
+                    <span className="truncate font-semibold">You</span>
+                    <span className="truncate text-xs text-muted-foreground">Local workspace</span>
                   </div>
                   <ChevronsUpDown className="ml-auto size-4" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56 rounded-lg" align="end" side="top">
-                <DropdownMenuLabel>My account</DropdownMenuLabel>
+                <DropdownMenuLabel>Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <BadgeCheck className="size-4" /> Upgrade plan
-                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/">
-                    <LogOut className="size-4" /> Exit demo
+                    <LogOut className="size-4" /> Exit workspace
                   </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>

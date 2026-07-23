@@ -1,5 +1,14 @@
-import { notFound } from "next/navigation";
-import { recommendations } from "@/lib/data/demo";
-import { RecommendationDetail } from "@/components/recommendation-detail";
-export function generateStaticParams(){return recommendations.map(({id})=>({id}))}
-export default async function RecommendationPage({params}:{params:Promise<{id:string}>}){const {id}=await params;const item=recommendations.find(x=>x.id===id);if(!item)notFound();return <RecommendationDetail item={item}/>}
+import { EmptyLiveState } from "@/components/empty-live-state";
+
+export function generateStaticParams() {
+  return [];
+}
+
+export default function RecommendationPage() {
+  return (
+    <EmptyLiveState
+      title="No saved recommendation detail"
+      description="Open Next actions from a live analyze on the dashboard. Seeded demo recommendations have been removed."
+    />
+  );
+}

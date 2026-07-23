@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { AnalyzeResult } from "@/lib/analyze/types";
+import { LIVE_ANALYZE_KEY } from "@/lib/client/live-project";
 
-const LAST_KEY = "opengrowth:analyze:last";
+const LAST_KEY = LIVE_ANALYZE_KEY;
 
 const sourceBadge: Record<string, string> = {
   technical: "SEO",

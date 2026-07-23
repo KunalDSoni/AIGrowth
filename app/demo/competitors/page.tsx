@@ -1,120 +1,52 @@
-import { competitorGaps, competitorRecords, competitors } from "@/lib/data/demo";
+"use client";
+
+import { EmptyLiveState } from "@/components/empty-live-state";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-
-const fields = [
-  ["service", "Service coverage"],
-  ["content", "Content coverage"],
-  ["technical", "Technical health"],
-  ["trust", "Trust signals"],
-  ["local", "Local visibility"],
-  ["conversion", "Conversion clarity"],
-  ["authority", "Topic authority"],
-] as const;
+import { useLiveAnalyze } from "@/lib/client/live-project";
 
 export default function CompetitorsPage() {
+  const { result, ready, hasLive } = useLiveAnalyze();
+  if (!ready) return null;
+  if (!hasLive || !result) {
+    return <EmptyLiveState title="No competitor evidence yet" />;
+  }
+
+  const cited = new Map<string, number>();
+  for (const obs of result.geo.observations) {
+    for (const c of obs.citations) {
+      if (c.classification === "other") cited.set(c.domain, (cited.get(c.domain) ?? 0) + 1);
+    }
+  }
+  const domains = [...cited.entries()].sort((a, b) => b[1] - a[1]);
+
   return (
     <>
       <PageHeader
-        title="Where Northstar can win"
-        description="Simulated directional comparison. Backlinks and social data are placeholders."
-        action={<Badge variant="secondary">2 demo competitors</Badge>}
+        title={`Citation competitors · ${result.project.brandGuess}`}
+        description="Domains cited in live Gemini answers instead of (or alongside) your site. Not a full competitor crawl."
+        action={<Badge variant="secondary">{domains.length} cited domains</Badge>}
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Competitor types are kept separate</CardTitle>
-          <CardDescription>Business, organic, local, AI-answer and citation competitors are never mixed in scoring.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-1.5">
-          {competitorRecords.map((record) => (
-            <Badge key={record.name} variant="outline">{record.name}: {record.type} ({record.confidence}%)</Badge>
-          ))}
-        </CardContent>
-      </Card>
-
-      {competitorGaps.length > 0 && (
+      {domains.length === 0 ? (
         <Card>
-          <CardHeader>
-            <CardTitle>Visibility gaps</CardTitle>
-            <CardDescription>Where competitors appear and Northstar is absent.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {competitorGaps.map((gap) => (
-              <div key={gap.id} className="rounded-lg border p-3">
-                <Badge variant="secondary">{gap.gapType} · {gap.confidence}</Badge>
-                <p className="mt-2 font-medium">{gap.competitor}</p>
-                <p className="text-sm text-muted-foreground">{gap.detail}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Sample size {gap.sampleSize} · competitor {gap.competitorRate}% vs you {gap.userRate}%</p>
-              </div>
-            ))}
+          <CardContent className="py-6 text-sm text-muted-foreground">
+            No third-party domains were cited in this GEO run.
           </CardContent>
         </Card>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          {domains.map(([domain, count]) => (
+            <Card key={domain}>
+              <CardHeader>
+                <CardTitle className="text-base">{domain}</CardTitle>
+                <CardDescription>Cited in {count} observation{count === 1 ? "" : "s"}</CardDescription>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
       )}
-
-      <Card className="border-primary/20 bg-muted/40">
-        <CardHeader>
-          <CardTitle>Competitors cover more topics, but Northstar has clearer service specialization.</CardTitle>
-          <CardDescription>
-            The fastest opportunity is to turn that specialization into three industry-specific service pages — starting with medical clinics.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Signal comparison</CardTitle>
-          <CardDescription>Directional scores out of 100.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-[160px_1fr_1fr] items-center gap-4 border-b pb-2 text-sm font-medium">
-            <span>Signal</span>
-            {competitors.map((competitor) => (
-              <span key={competitor.name}>
-                {competitor.name} <span className="text-xs font-normal text-muted-foreground">{competitor.type}</span>
-              </span>
-            ))}
-          </div>
-          {fields.map(([key, label]) => (
-            <div key={key} className="grid grid-cols-[160px_1fr_1fr] items-center gap-4 text-sm">
-              <span className="text-muted-foreground">{label}</span>
-              {competitors.map((competitor) => (
-                <div key={competitor.name} className="flex items-center gap-2">
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full bg-primary" style={{ width: `${competitor[key]}%` }} />
-                  </div>
-                  <span className="w-12 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{competitor[key]}/100</span>
-                </div>
-              ))}
-            </div>
-          ))}
-          {(["Backlink strength", "Social activity"] as const).map((label) => (
-            <div key={label} className="grid grid-cols-[160px_1fr_1fr] items-center gap-4 text-sm">
-              <span className="text-muted-foreground">{label}</span>
-              {competitors.map((competitor) => (
-                <span key={competitor.name} className="text-xs text-muted-foreground">Provider not connected</span>
-              ))}
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        {[
-          ["Defend", "Service depth", "Northstar already communicates broader operational accounting expertise."],
-          ["Close the gap", "Content coverage", "Create specialist pages and a useful Australian tax resource."],
-          ["Do not chase yet", "Raw backlink counts", "Connect a trusted provider before making link-building decisions."],
-        ].map(([eyebrow, title, body]) => (
-          <Card key={title}>
-            <CardHeader>
-              <CardDescription>{eyebrow}</CardDescription>
-              <CardTitle className="text-base">{title}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">{body}</CardContent>
-          </Card>
-        ))}
-      </div>
     </>
   );
 }
