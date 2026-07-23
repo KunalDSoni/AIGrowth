@@ -7,12 +7,19 @@ import {
   updateOutreachStatus,
 } from "@/lib/marketing/workspace";
 import { runDeepMarketingEngine } from "@/lib/marketing/deep-engine";
-import { demoAnalyzeForMarketing } from "@/tests/fixtures/marketing";
+import { makeAnalyzeResult } from "@/tests/support/analyze-input";
 import { buildLiveIntelligence } from "@/lib/engines/live-intelligence";
 
 describe("Deep marketing engine", () => {
   it("produces substantial claim-checked packs from evidence", async () => {
-    const result = demoAnalyzeForMarketing();
+    const result = makeAnalyzeResult({
+      brand: "Test Brand",
+      domain: "example.invalid",
+      score: 72,
+      critical: 2,
+      high: 3,
+      citedDomains: ["directory.invalid"],
+    });
     result.intelligence = buildLiveIntelligence(result);
     const deep = await runDeepMarketingEngine(result, { hoursPerWeek: 8, useGemini: false });
 
@@ -43,7 +50,14 @@ describe("Marketing workspace (persistent + deep)", () => {
   it("generates deep packs, persists, and mutates status", async () => {
     // Fixture is passed in explicitly. The product itself can no longer
     // fabricate a stand-in project when real data is absent.
-    const fixture = demoAnalyzeForMarketing();
+    const fixture = makeAnalyzeResult({
+      brand: "Test Brand",
+      domain: "example.invalid",
+      score: 72,
+      critical: 2,
+      high: 3,
+      citedDomains: ["directory.invalid"],
+    });
     fixture.intelligence = buildLiveIntelligence(fixture);
     const ws = await generateWorkspace({
       analyze: fixture,

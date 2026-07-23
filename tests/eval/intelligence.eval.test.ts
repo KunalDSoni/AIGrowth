@@ -1,138 +1,153 @@
 import { describe, expect, it } from "vitest";
-import {
-  aiVisibilitySummaries,
-  citationGapActions,
-  evidenceReferences,
-  outcomeLearningRecords,
-  recommendations,
-} from "@/tests/fixtures/demo";
 import { calculateRecommendationPriority } from "@/lib/engines/priority";
 import { flagClaims } from "@/lib/engines/brief-builder";
+import { summarizeAIVisibility } from "@/lib/engines/ai-visibility";
+import { buildCitationGapActions } from "@/lib/engines/citation-gap";
 import { MIN_SAMPLE_SIZE } from "@/lib/engines/competitor-intelligence";
+import { runDeepMarketingEngine } from "@/lib/marketing/deep-engine";
+import { buildLiveIntelligence } from "@/lib/engines/live-intelligence";
+import { makeAnalyzeResult } from "@/tests/support/analyze-input";
+import type {
+  AIVisibilityObservation,
+  AIVisibilityPromptFamily,
+  RecommendationScoreComponents,
+} from "@/lib/domain/types";
 
 /**
- * Evaluation Harness (CRITICAL_PRE_DEVELOPMENT_ADDENDUM §5).
+ * Evaluation harness.
  *
- * These are not unit tests of a single function — they assert *intelligence
- * quality* invariants across the whole demo dataset, the kind of guarantees that
- * separate a real AI SEO engine from a dashboard: every recommendation is
- * grounded in evidence, scores stay in range, AI-visibility carries uncertainty,
- * citation gaps respect sample-size thresholds, unsupported claims are caught,
- * and outcomes never assert false causation.
+ * These assert *intelligence quality* invariants over real engine output, not
+ * over a stored dataset. Inputs are minimal and neutral; the assertions are
+ * about what the engines guarantee — grounded claims, bounded scores, honest
+ * uncertainty — which is what separates an engine from a dashboard.
  */
 
-const evidenceById = new Map(evidenceReferences.map((e) => [e.id, e]));
+const components = (over: Partial<RecommendationScoreComponents> = {}): RecommendationScoreComponents => ({
+  businessRelevance: 80,
+  conversionPotential: 80,
+  discoveryOpportunity: 80,
+  severity: 80,
+  strategicAlignment: 80,
+  urgency: 70,
+  effort: 40,
+  evidenceConfidence: 75,
+  risk: 20,
+  dependencyReadiness: 80,
+  ...over,
+});
 
-describe("eval: evidence correctness", () => {
-  it("every recommendation is backed by at least one evidence reference", () => {
-    for (const rec of recommendations) {
-      expect(rec.evidenceIds.length, `${rec.id} has no evidence`).toBeGreaterThan(0);
+const family: AIVisibilityPromptFamily = {
+  id: "fam-1",
+  topic: "Topic",
+  buyingStage: "decision",
+  persona: "Buyer",
+  geography: "Global",
+  prompts: ["a", "b", "c"],
+};
+
+const observation = (id: string, mentionsBrand: boolean): AIVisibilityObservation => ({
+    id,
+    familyId: "fam-1",
+    exactPrompt: "a",
+    platform: "ChatGPT",
+    model: "test-model",
+    locale: "Global",
+    runId: "run-1",
+    observedAt: "2026-07-23T00:00:00.000Z",
+    rawResponse: "response",
+    brandMentions: mentionsBrand ? ["Test Brand"] : [],
+    competitorMentions: ["Competitor One"],
+    citations: [{ url: "https://reference.invalid/a", domain: "reference.invalid", title: "Reference" }],
+    sentiment: mentionsBrand ? "positive" : "neutral",
+    extractionConfidence: 80,
+    isSimulated: false,
+});
+
+describe("scoring invariants", () => {
+  it("keeps priority scores within 0-100", () => {
+    for (const over of [{}, { effort: 0 }, { effort: 100, risk: 100 }, { businessRelevance: 100 }]) {
+      const score = calculateRecommendationPriority(components(over));
+      expect(score.priorityScore).toBeGreaterThanOrEqual(0);
+      expect(score.priorityScore).toBeLessThanOrEqual(100);
     }
   });
 
-  it("every referenced evidence id resolves to a real, provenance-labelled record", () => {
-    for (const rec of recommendations) {
-      for (const id of rec.evidenceIds) {
-        const evidence = evidenceById.get(id);
-        expect(evidence, `${rec.id} references missing evidence ${id}`).toBeDefined();
-        expect(evidence!.kind).toBeTruthy();
-        expect(["HIGH", "MEDIUM", "LOW", "UNKNOWN"]).toContain(evidence!.reliability);
-      }
-    }
+  it("ranks a stronger candidate above a weaker one deterministically", () => {
+    const strong = calculateRecommendationPriority(components({ businessRelevance: 95, effort: 20 }));
+    const weak = calculateRecommendationPriority(components({ businessRelevance: 40, effort: 90 }));
+    expect(strong.priorityScore).toBeGreaterThan(weak.priorityScore);
+  });
+});
+
+describe("answer-engine visibility honesty", () => {
+  it("reports a sample size and a bounded mention frequency", () => {
+    const [summary] = summarizeAIVisibility(
+      [family],
+      [observation("o1", true), observation("o2", false), observation("o3", true)],
+      "Test Brand",
+    );
+    expect(summary.sampleSize).toBe(3);
+    expect(summary.brandMentionFrequency).toBeGreaterThanOrEqual(0);
+    expect(summary.brandMentionFrequency).toBeLessThanOrEqual(100);
   });
 
-  it("simulated or estimated evidence is explicitly labelled", () => {
-    for (const evidence of evidenceReferences) {
-      expect(typeof evidence.isSimulated).toBe("boolean");
-      expect(typeof evidence.isEstimated).toBe("boolean");
+  it("never collapses visibility into a single magic score", () => {
+    const [summary] = summarizeAIVisibility([family], [observation("o1", true)], "Test Brand");
+    expect(summary.citedDomainFrequency).toBeDefined();
+    expect(summary.competitorMentionFrequency).toBeDefined();
+    expect(summary.sentimentDistribution).toBeDefined();
+    expect(summary.recommendedAction.length).toBeGreaterThan(0);
+  });
+
+  it("does not claim High confidence below the sample-size threshold", () => {
+    const observations = [observation("o1", false)];
+    const summaries = summarizeAIVisibility([family], observations, "Test Brand");
+    const actions = buildCitationGapActions({
+      summaries,
+      observations,
+      firstPartyDomain: "example.invalid",
+      competitors: ["Competitor One"],
+      brand: "Test Brand",
+    });
+    expect(observations.length).toBeLessThan(MIN_SAMPLE_SIZE);
+    for (const action of actions) {
+      expect(action.confidence).not.toBe("High");
     }
   });
 });
 
-describe("eval: recommendation scoring", () => {
-  it("priority scores stay within 0-100 and match the scoring engine", () => {
-    for (const rec of recommendations) {
-      expect(rec.priorityScore).toBeGreaterThanOrEqual(0);
-      expect(rec.priorityScore).toBeLessThanOrEqual(100);
-      const recomputed = calculateRecommendationPriority(rec.scoreComponents).priorityScore;
-      expect(rec.priorityScore).toBe(recomputed);
-    }
-  });
-
-  it("a stronger candidate outranks a weaker one deterministically", () => {
-    const strong = calculateRecommendationPriority({
-      businessRelevance: 95, conversionPotential: 95, discoveryOpportunity: 90, severity: 80,
-      strategicAlignment: 95, urgency: 85, effort: 10, evidenceConfidence: 85, risk: 10, dependencyReadiness: 90,
-    }).priorityScore;
-    const weak = calculateRecommendationPriority({
-      businessRelevance: 30, conversionPotential: 30, discoveryOpportunity: 20, severity: 20,
-      strategicAlignment: 30, urgency: 20, effort: 90, evidenceConfidence: 30, risk: 60, dependencyReadiness: 30,
-    }).priorityScore;
-    expect(strong).toBeGreaterThan(weak);
-  });
-});
-
-describe("eval: AI visibility carries uncertainty", () => {
-  it("every summary reports a sample size and bounded mention frequency", () => {
-    for (const summary of aiVisibilitySummaries) {
-      expect(summary.sampleSize).toBeGreaterThanOrEqual(1);
-      expect(summary.brandMentionFrequency).toBeGreaterThanOrEqual(0);
-      expect(summary.brandMentionFrequency).toBeLessThanOrEqual(100);
-    }
-  });
-
-  it("never presents AI visibility as a single magic score", () => {
-    for (const summary of aiVisibilitySummaries) {
-      // A real conclusion references variability/consistency, not one ranking.
-      expect(summary.conclusion.length).toBeGreaterThan(0);
-      expect(summary.evidenceIds.length).toBe(summary.sampleSize);
-    }
-  });
-});
-
-describe("eval: citation gap thresholds", () => {
-  it("citation gaps are never High-confidence below the sample-size threshold", () => {
-    for (const gap of citationGapActions) {
-      if (gap.confidence === "High") {
-        // High confidence would require a large sample; demo data must not fake it.
-        expect(gap.evidenceIds.length).toBeGreaterThanOrEqual(MIN_SAMPLE_SIZE * 2);
-      } else {
-        expect(["Low", "Medium"]).toContain(gap.confidence);
-      }
-    }
-  });
-
-  it("every citation gap keeps its assumptions visible", () => {
-    for (const gap of citationGapActions) {
-      expect(gap.assumptions.length).toBeGreaterThan(0);
-      expect(gap.measurementPlan.length).toBeGreaterThan(0);
-    }
-  });
-});
-
-describe("eval: unsupported claim detection", () => {
+describe("claim safety", () => {
   it("flags fabricated authority and guarantees", () => {
-    expect(flagClaims("We guarantee first-page rankings.").length).toBeGreaterThan(0);
-    expect(flagClaims("We are the number one provider in the world.").length).toBeGreaterThan(0);
+    expect(flagClaims("We are the #1 award-winning firm and guarantee results.").length).toBeGreaterThan(0);
   });
 
   it("does not flag honest, verifiable copy", () => {
-    expect(flagClaims("We provide bookkeeping and payroll for Australian clinics.")).toEqual([]);
+    expect(flagClaims("We prepare monthly management accounts and explain each figure.")).toHaveLength(0);
   });
 });
 
-describe("eval: outcome attribution limits", () => {
-  it("every outcome record states attribution limitations", () => {
-    for (const record of outcomeLearningRecords) {
-      expect(record.attributionLimitations.length).toBeGreaterThan(0);
-    }
-  });
+describe("generated work is grounded", () => {
+  it("grounds every campaign pack in observed site facts and never invents outreach", async () => {
+    const result = makeAnalyzeResult({
+      brand: "Test Brand",
+      domain: "example.invalid",
+      score: 68,
+      critical: 2,
+      high: 4,
+    });
+    result.intelligence = buildLiveIntelligence(result);
 
-  it("outcome confidence is never overstated as High for small demo samples", () => {
-    for (const record of outcomeLearningRecords) {
-      expect(["Low", "Medium", "High"]).toContain(record.outcomeConfidence);
-      expect(record.comparisonPeriod).toBeTruthy();
-      expect(record.baselinePeriod).toBeTruthy();
+    const deep = await runDeepMarketingEngine(result, { hoursPerWeek: 8, useGemini: false });
+
+    expect(deep.packs.length).toBeGreaterThan(0);
+    for (const pack of deep.packs) {
+      expect(pack.siteFactsUsed.length).toBeGreaterThan(0);
+      for (const asset of pack.assets) {
+        expect(asset.claimFlags).toBeDefined();
+      }
     }
+
+    // No citations were observed, so nothing may be invented to fill the gap.
+    expect(deep.context.citedOthers).toEqual([]);
   });
 });

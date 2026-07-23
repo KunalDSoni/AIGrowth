@@ -32,7 +32,7 @@ export interface ObservationRun {
   cost: RunCost;
 }
 
-const PLATFORMS: AIVisibilityObservation["platform"][] = ["MockGPT", "MockGemini", "MockClaude"];
+const PLATFORMS: AIVisibilityObservation["platform"][] = ["ChatGPT", "Gemini", "Claude"];
 
 // Deterministic PRNG (mulberry32) — same seed, same sequence, on every machine.
 function mulberry32(seed: number): () => number {
@@ -46,7 +46,7 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-export interface MockAIProvider {
+export interface AIAnswerProvider {
   readonly name: string;
   answer(prompt: string, ctx: { platform: AIVisibilityObservation["platform"]; mentionsBrand: boolean; competitor: string; brand: string; firstPartyDomain: string }): {
     rawResponse: string;
@@ -54,25 +54,6 @@ export interface MockAIProvider {
     sentiment: AIVisibilityObservation["sentiment"];
   };
 }
-
-export const defaultMockProvider: MockAIProvider = {
-  name: "opengrowth-mock",
-  answer(prompt, ctx) {
-    const citationDomain = ctx.mentionsBrand
-      ? ctx.firstPartyDomain
-      : `${ctx.competitor.toLowerCase().replace(/[^a-z0-9]/g, "")}.example`;
-    return {
-      rawResponse: ctx.mentionsBrand
-        ? `${ctx.brand} is a relevant option here, alongside ${ctx.competitor}. Verify service fit before choosing.`
-        : `${ctx.competitor} is mentioned more clearly than ${ctx.brand} for "${prompt}".`,
-      citations: [
-        { url: `https://${citationDomain}/answer`, domain: citationDomain, title: ctx.mentionsBrand ? `${ctx.brand} page` : `${ctx.competitor} page` },
-        { url: "https://business.gov.au/finance", domain: "business.gov.au", title: "Public guidance" },
-      ],
-      sentiment: ctx.mentionsBrand ? "positive" : "neutral",
-    };
-  },
-};
 
 export interface RunInput {
   family: AIVisibilityPromptFamily;
@@ -82,7 +63,8 @@ export interface RunInput {
   brand: string;
   firstPartyDomain: string;
   competitors: string[];
-  provider?: MockAIProvider;
+  /** Required. The engine never fabricates answers on its own. */
+  provider: AIAnswerProvider;
   /** Per-observation token cost estimate; defaults to a small mock number. */
   tokensPerAnswer?: number;
   usdPerThousandTokens?: number;
@@ -94,7 +76,7 @@ export interface RunInput {
  * becomes "failed" only if the provider is entirely unusable.
  */
 export function runObservations(input: RunInput): ObservationRun {
-  const provider = input.provider ?? defaultMockProvider;
+  const provider = input.provider;
   const rand = mulberry32(input.seed);
   const tokensPerAnswer = input.tokensPerAnswer ?? 220;
   const usdPerThousand = input.usdPerThousandTokens ?? 0.5;

@@ -7,14 +7,14 @@ import { onboardingSchema } from "@/lib/security/url";
 import { track } from "@/lib/analytics/client";
 
 const steps = [
-  { title: "Let’s start with your website", sub: "We’ll use it to understand what you offer.", fields: [{ key: "website", label: "Website URL", placeholder: "northstaraccounting.com.au" }, { key: "businessName", label: "Business name", placeholder: "Northstar Accounting" }] },
+  { title: "Let’s start with your website", sub: "We’ll use it to understand what you offer.", fields: [{ key: "website", label: "Website URL", placeholder: "yourwebsite.com" }, { key: "businessName", label: "Business name", placeholder: "Your business name" }] },
   { title: "Who do you help?", sub: "This keeps recommendations relevant to the business—not just the website.", fields: [{ key: "industry", label: "Industry", placeholder: "Accounting and bookkeeping" }, { key: "audience", label: "Target customer", placeholder: "Small businesses and medical clinics" }] },
   { title: "Where are you growing?", sub: "Search behavior and opportunities change by market.", fields: [{ key: "country", label: "Primary market", placeholder: "Australia" }, { key: "goal", label: "Main conversion goal", placeholder: "Qualified consultation leads" }] },
   { title: "How should we plan?", sub: "Budget and maturity help us recommend realistic work.", fields: [{ key: "budget", label: "Monthly marketing budget", placeholder: "$1,000–$3,000" }, { key: "maturity", label: "Marketing maturity", placeholder: "Some activity, no clear system" }] },
-  { title: "Give the AI your voice", sub: "Optional competitor context makes the demo more specific.", fields: [{ key: "competitors", label: "Competitors (optional)", placeholder: "LedgerWise, ClearBooks AU" }, { key: "tone", label: "Preferred tone", placeholder: "Professional, warm and plain-spoken" }] },
+  { title: "Give the AI your voice", sub: "Optional competitor context makes the analysis more specific.", fields: [{ key: "competitors", label: "Competitors (optional)", placeholder: "Competitor one, competitor two" }, { key: "tone", label: "Preferred tone", placeholder: "Professional, warm and plain-spoken" }] },
 ];
 
-const defaults: Record<string, string> = { website: "northstaraccounting.com.au", businessName: "Northstar Accounting", industry: "Accounting and bookkeeping", audience: "Small businesses, medical clinics, e-commerce companies and professional services", country: "Australia", goal: "Generate qualified consultation leads", budget: "$1,000–$3,000", maturity: "Some activity, no clear system", competitors: "LedgerWise, ClearBooks AU", tone: "Professional, warm and plain-spoken" };
+const defaults: Record<string, string> = { website: "", businessName: "", industry: "", audience: "", country: "", goal: "", budget: "", maturity: "", competitors: "", tone: "" };
 
 export function OnboardingFlow() {
   const router = useRouter();

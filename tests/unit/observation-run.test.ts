@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { runObservations, runVariance, type MockAIProvider } from "@/lib/engines/observation-run";
+import { runObservations, runVariance, type AIAnswerProvider } from "@/lib/engines/observation-run";
 import type { AIVisibilityPromptFamily } from "@/lib/domain/types";
 
 const family: AIVisibilityPromptFamily = {
@@ -16,12 +16,31 @@ const family: AIVisibilityPromptFamily = {
   ],
 };
 
+/** Test double. The engine has no built-in provider — callers must supply one. */
+const stubProvider: AIAnswerProvider = {
+  name: "stub",
+  answer(prompt, ctx) {
+    const domain = ctx.mentionsBrand ? ctx.firstPartyDomain : "competitor.invalid";
+    return {
+      rawResponse: ctx.mentionsBrand
+        ? `${ctx.brand} answers "${prompt}".`
+        : `${ctx.competitor} answers "${prompt}".`,
+      citations: [
+        { url: `https://${domain}/a`, domain, title: "Source" },
+        { url: "https://reference.invalid/guide", domain: "reference.invalid", title: "Reference" },
+      ],
+      sentiment: ctx.mentionsBrand ? "positive" : "neutral",
+    };
+  },
+};
+
 const base = {
   family,
   observedAt: "2026-07-23T00:00:00.000Z",
-  brand: "Northstar",
-  firstPartyDomain: "northstar.example",
-  competitors: ["LedgerWise", "ClearBooks"],
+  brand: "Test Brand",
+  firstPartyDomain: "example.invalid",
+  competitors: ["Competitor One", "Competitor Two"],
+  provider: stubProvider,
 };
 
 describe("runObservations", () => {
@@ -54,14 +73,14 @@ describe("runObservations", () => {
     const run = runObservations({ ...base, runId: "run-a", seed: 3 });
     for (const obs of run.observations) {
       expect(obs.observedAt).toBe(base.observedAt);
-      expect(["MockGPT", "MockGemini", "MockClaude"]).toContain(obs.platform);
+      expect(["ChatGPT", "Gemini", "Claude"]).toContain(obs.platform);
       expect(obs.rawResponse.length).toBeGreaterThan(0);
       expect(obs.isSimulated).toBe(true);
     }
   });
 
   it("marks the run failed and records errors when every answer throws", () => {
-    const broken: MockAIProvider = {
+    const broken: AIAnswerProvider = {
       name: "broken",
       answer() {
         throw new Error("provider down");

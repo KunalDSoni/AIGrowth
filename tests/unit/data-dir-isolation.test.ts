@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { dataRoot, dataDir } from "@/lib/storage/data-dir";
 import { generateWorkspace } from "@/lib/marketing/workspace";
 import { buildLiveIntelligence } from "@/lib/engines/live-intelligence";
-import { demoAnalyzeForMarketing } from "@/tests/fixtures/marketing";
+import { makeAnalyzeResult } from "@/tests/support/analyze-input";
 
 const repoDataDir = join(process.cwd(), ".data");
 
@@ -20,7 +20,7 @@ describe("data directory isolation", () => {
   });
 
   it("writes generated workspaces outside the repository", async () => {
-    const fixture = demoAnalyzeForMarketing();
+    const fixture = makeAnalyzeResult({ brand: "Test Brand", domain: "example.invalid", score: 72, critical: 2, high: 3 });
     fixture.intelligence = buildLiveIntelligence(fixture);
     const ws = await generateWorkspace({ analyze: fixture, hoursPerWeek: 8, useGemini: false });
 

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useLiveAnalyze } from "@/lib/client/live-project";
 import { Check, Download, LockKeyhole, Plug, Trash2, Users } from "lucide-react";
 import { track } from "@/lib/analytics/client";
 import { PageHeader } from "@/components/page-header";
@@ -27,13 +28,16 @@ function Field({ label, defaultValue }: { label: string; defaultValue: string })
 }
 
 export function SettingsPanel() {
+  const { result } = useLiveAnalyze();
+  const brand = result?.project.brandGuess;
+  const domain = result?.project.domain;
   const [saved, setSaved] = useState(false);
   const [confirm, setConfirm] = useState(false);
 
   return (
     <>
       <PageHeader
-        title="Northstar Accounting"
+        title={brand ?? "Settings"}
         description="Keep strategy, voice and connected data under your control."
         action={
           <Button onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 1800); }}>
@@ -60,10 +64,10 @@ export function SettingsPanel() {
               <p className="text-sm text-muted-foreground">Used to keep recommendations commercially relevant.</p>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
-              <Field label="Business name" defaultValue="Northstar Accounting" />
-              <Field label="Website" defaultValue="https://northstaraccounting.com.au" />
-              <Field label="Industry" defaultValue="Accounting and bookkeeping" />
-              <Field label="Main goal" defaultValue="Qualified consultation leads" />
+              <Field label="Business name" defaultValue={brand ?? ""} />
+              <Field label="Website" defaultValue={domain ? `https://${domain}` : ""} />
+              <Field label="Industry" defaultValue="" />
+              <Field label="Main goal" defaultValue="" />
             </CardContent>
           </Card>
 
@@ -87,8 +91,8 @@ export function SettingsPanel() {
               <CardTitle className="text-base">Market and competitors</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
-              <Field label="Primary market" defaultValue="Australia" />
-              <Field label="Competitors" defaultValue="LedgerWise, ClearBooks AU" />
+              <Field label="Primary market" defaultValue="" />
+              <Field label="Competitors" defaultValue="" />
             </CardContent>
           </Card>
 

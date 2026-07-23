@@ -16,7 +16,7 @@ function obs(partial: {
     id: Math.random().toString(36).slice(2),
     familyId: "f1",
     exactPrompt: "who is best?",
-    platform: "MockGPT",
+    platform: "ChatGPT",
     model: "mock-1",
     locale: "en-AU",
     runId: "run-1",

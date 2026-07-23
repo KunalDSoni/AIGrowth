@@ -7,7 +7,7 @@ function obs(id: string, citations: { url: string; domain: string }[]): AIVisibi
     id,
     familyId: "fam-1",
     exactPrompt: "who is best?",
-    platform: "MockGPT",
+    platform: "ChatGPT",
     model: "mock",
     locale: "en-AU",
     runId: "run-1",
