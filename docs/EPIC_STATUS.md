@@ -147,6 +147,20 @@ Updated: 2026-07-23
 
 **Total: 138/138 done.**
 
+## Growth Intelligence Platform (GIP) — packaging slice
+
+| Epic ID | Epic | Status | Location |
+|---|---|---|---|
+| GIP-001 | Report contract & types | Done | `lib/domain/types.ts` |
+| GIP-002 | Live→aggregator input adapter | Done | `lib/engines/growth-intelligence-compose.ts` |
+| GIP-003 | Pillar snapshot builder | Done | `lib/engines/growth-intelligence-compose.ts` |
+| GIP-004 | Compose orchestrator | Done | `lib/engines/growth-intelligence-compose.ts` |
+| GIP-005 | API route | Done | `app/api/growth-intelligence/route.ts` |
+| GIP-006 | Dashboard page | Done | `app/demo/growth-intelligence/page.tsx` + `components/growth-intelligence.tsx` |
+| GIP-007 | Wire-up & docs | Done | `components/app-sidebar.tsx` |
+
+Wires the previously orphaned `growth-intelligence.ts` aggregator to live crawl + GEO evidence and exposes it as one unified surface. Spec: `docs/superpowers/specs/2026-07-24-growth-intelligence-platform-design.md` · Slice: `docs/slices/SLICE-GROWTH-INTELLIGENCE-PLATFORM.md`.
+
 ## APIs
 
 - `GET /api/epics?domain=` — run full suite

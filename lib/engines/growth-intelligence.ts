@@ -24,8 +24,18 @@ function scoreSignal(signal: GrowthSignal) {
   }).priorityScore;
 }
 
+/**
+ * The subset of a Recommendation the signal builder actually reads. Accepting
+ * this instead of the full type lets live `RankedCandidate`s feed the aggregator
+ * without fabricating the other Recommendation fields — no ranking-logic change.
+ */
+export type RecommendationSignalInput = Pick<
+  Recommendation,
+  "id" | "title" | "evidenceIds" | "scoreComponents"
+>;
+
 export function buildGrowthSignals(input: {
-  recommendations: Recommendation[];
+  recommendations: RecommendationSignalInput[];
   auditIssues: AuditIssue[];
   opportunities: ContentOpportunity[];
   aiVisibility: AIVisibilitySummary[];

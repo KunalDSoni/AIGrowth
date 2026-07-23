@@ -53,6 +53,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Analyze",
     items: [
+      { href: "/demo/growth-intelligence", title: "Growth Intelligence", icon: Sprout },
       { href: "/demo/dashboard", title: "Dashboard", icon: LayoutDashboard },
       { href: "/demo/business", title: "Business graph", icon: Building2 },
       { href: "/demo/audit", title: "Audit workspace", icon: FileSearch },

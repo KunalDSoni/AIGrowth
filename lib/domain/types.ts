@@ -277,6 +277,36 @@ export interface UnifiedGrowthDecision {
   measurement: string;
 }
 
+/** The six product-facing "intelligences" that compose Growth Intelligence. */
+export type GrowthPillarId =
+  | "search"
+  | "technical"
+  | "business"
+  | "content"
+  | "ai-visibility"
+  | "marketing";
+
+/** Presentation summary of one pillar for the Growth Intelligence header. */
+export interface PillarSummary {
+  id: GrowthPillarId;
+  label: string;
+  signalCount: number;
+  topSignalTitle: string | null;
+  evidenceIds: string[];
+  labels: string[];
+}
+
+/** Unified payload returned by the Growth Intelligence endpoint and dashboard. */
+export interface GrowthIntelligenceReport {
+  domain: string;
+  generatedAt: string;
+  pillars: PillarSummary[];
+  decisions: UnifiedGrowthDecision[];
+  guardrails: string[];
+  labels: string[];
+  evidenceIds: string[];
+}
+
 export interface ContentOpportunity {
   id: string;
   title: string;
