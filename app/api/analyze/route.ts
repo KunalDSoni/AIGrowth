@@ -160,6 +160,7 @@ export async function POST(request: Request) {
     };
 
     await store.save(result);
+    result.delta = await store.loadDelta(domain);
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Analyze failed";
@@ -168,11 +169,19 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const domain = new URL(request.url).searchParams.get("domain");
+  const url = new URL(request.url);
+  const domain = url.searchParams.get("domain");
   if (!domain) {
     return NextResponse.json({ error: "domain query required" }, { status: 400 });
   }
-  const result = await getProjectStore().loadLatest(domain);
+  const store = getProjectStore();
+  if (url.searchParams.get("delta") === "1") {
+    const delta = await store.loadDelta(domain);
+    if (!delta) return NextResponse.json({ error: "No prior run to compare" }, { status: 404 });
+    return NextResponse.json({ delta });
+  }
+  const result = await store.loadLatest(domain);
   if (!result) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  result.delta = await store.loadDelta(domain);
   return NextResponse.json(result);
 }

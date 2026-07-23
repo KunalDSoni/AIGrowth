@@ -10,6 +10,7 @@ import type { AnalyzeResult } from "@/lib/analyze/types";
 import type { RankedCandidate } from "@/lib/engines/recommendation-bus";
 import { LIVE_ANALYZE_KEY } from "@/lib/client/live-project-key";
 import { ActionWorkspace } from "@/components/action-workspace";
+import { OutcomeDeltaPanel } from "@/components/outcome-delta-panel";
 
 const LAST_KEY = LIVE_ANALYZE_KEY;
 
@@ -39,6 +40,14 @@ export function ProjectAnalyze({ onLiveResult }: { onLiveResult?: (hasLive: bool
         setResult(parsed);
         setUrl(parsed.project.url);
         onLiveResult?.(true);
+        if (!parsed.delta) {
+          fetch(`/api/analyze?domain=${encodeURIComponent(parsed.project.domain)}&delta=1`)
+            .then((r) => (r.ok ? r.json() : null))
+            .then((json: { delta?: AnalyzeResult["delta"] } | null) => {
+              if (json?.delta) setResult((prev) => (prev ? { ...prev, delta: json.delta } : prev));
+            })
+            .catch(() => undefined);
+        }
       } else {
         localStorage.removeItem(LAST_KEY);
       }
@@ -71,6 +80,7 @@ export function ProjectAnalyze({ onLiveResult }: { onLiveResult?: (hasLive: bool
         // Keep cache small — full Gemini answers can blow localStorage quota.
         const slim: AnalyzeResult = {
           ...data,
+          delta: data.delta ?? null,
           geo: {
             ...data.geo,
             observations: data.geo.observations.map((obs) => ({
@@ -137,6 +147,20 @@ export function ProjectAnalyze({ onLiveResult }: { onLiveResult?: (hasLive: bool
             />
             <Kpi label="Next actions" value={String(result.nextActions.length)} icon={Sparkles} hint="SEO + GEO ranked" />
           </div>
+
+          {result.delta && <OutcomeDeltaPanel delta={result.delta} />}
+
+          {!result.delta && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Outcome learning</CardTitle>
+                <CardDescription>
+                  Re-run Analyze on the same domain after you ship fixes. We&apos;ll compare SEO readiness, GEO mention rate,
+                  citations, and Next actions — with honest attribution limits.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          )}
 
           {result.guardrails.length > 0 && (
             <Card>

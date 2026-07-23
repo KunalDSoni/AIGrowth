@@ -63,4 +63,60 @@ describe("file project store", () => {
     const loaded = await store.loadLatest("dosacc.com");
     expect(loaded?.project.brandGuess).toBe("Dosacc");
   });
+
+  it("builds a delta after a second analyze", async () => {
+    const store = createFileProjectStore(dir);
+    const base = {
+      project: { id: "p1", domain: "dosacc.com", brandGuess: "Dosacc", url: "https://dosacc.com/" },
+      seo: {
+        site: {
+          score: 70,
+          band: "good",
+          pagesScanned: 2,
+          pagesFailed: 0,
+          totalIssues: 5,
+          critical: 1,
+          high: 2,
+          quickWins: 2,
+          worstPages: [],
+          topIssues: [],
+        },
+        pages: [],
+        siteIssues: [],
+        scannedAt: "2026-07-01T00:00:00.000Z",
+        finalUrl: "https://dosacc.com/",
+        origin: "https://dosacc.com",
+      },
+      geo: {
+        runId: "g1",
+        model: "gemini-flash-latest",
+        sampleSize: 6,
+        brandMentionRate: 10,
+        firstPartyCitationShare: 0,
+        observations: [],
+        errors: [],
+        cost: { provider: "gemini" as const, estimatedUsd: 0, tokens: 0 },
+      },
+      evidence: [],
+      nextActions: [],
+      guardrails: [],
+      analyzedAt: "2026-07-01T00:00:00.000Z",
+    } satisfies AnalyzeResult;
+
+    await store.save(base);
+    await store.save({
+      ...base,
+      seo: {
+        ...base.seo,
+        site: { ...base.seo.site, score: 88, totalIssues: 2, critical: 0, high: 1 },
+      },
+      geo: { ...base.geo, runId: "g2", brandMentionRate: 40, firstPartyCitationShare: 5 },
+      analyzedAt: "2026-07-23T00:00:00.000Z",
+    });
+
+    const delta = await store.loadDelta("dosacc.com");
+    expect(delta).not.toBeNull();
+    expect(delta?.metrics.find((m) => m.key === "seoScore")?.delta).toBe(18);
+    expect(delta?.metrics.find((m) => m.key === "brandMentionRate")?.improved).toBe(true);
+  });
 });

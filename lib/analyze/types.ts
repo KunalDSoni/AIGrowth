@@ -1,6 +1,7 @@
 import type { AuditIssue, EvidenceReference } from "@/lib/domain/types";
 import type { PageAudit, SiteSummary } from "@/lib/engines/site-audit";
 import type { RankedCandidate } from "@/lib/engines/recommendation-bus";
+import type { AnalyzeDelta } from "@/lib/engines/analyze-delta";
 
 export interface AnalyzeProject {
   id: string;
@@ -52,4 +53,6 @@ export interface AnalyzeResult {
   nextActions: RankedCandidate[];
   guardrails: string[];
   analyzedAt: string;
+  /** Present when a prior run exists for this domain. */
+  delta?: AnalyzeDelta | null;
 }
