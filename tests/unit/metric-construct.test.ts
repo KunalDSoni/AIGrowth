@@ -27,7 +27,7 @@ describe("metric constructors", () => {
     const low = percentValue(40, { ...base, sample: { n: 3, minReliable: 20 } });
     expect(low.confidence).toBe("insufficient");
     const ok = percentValue(40, { ...base, sample: { n: 25, minReliable: 20 } });
-    expect(ok.confidence).toBe("low");
+    expect(ok.confidence).toBe("insufficient"); // no interval supplied → insufficient
   });
 
   it("requires assumptions for an estimated metric", () => {

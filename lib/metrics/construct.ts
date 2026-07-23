@@ -1,9 +1,11 @@
-import type { Metric, MetricBasis, MetricSample, Unit } from "@/lib/metrics/types";
+import { metricConfidence } from "@/lib/metrics/wilson";
+import type { Metric, MetricBasis, MetricInterval, MetricSample, Unit } from "@/lib/metrics/types";
 
 export interface ConstructOpts {
   basis: MetricBasis;
   evidenceIds: string[];
   sample?: MetricSample;
+  interval?: MetricInterval;
   assumptions?: string[];
 }
 
@@ -16,9 +18,7 @@ function build<U extends Unit>(value: number, unit: U, opts: ConstructOpts): Met
   const confidence = !finite
     ? ("insufficient" as const)
     : opts.sample
-      ? opts.sample.n >= opts.sample.minReliable
-        ? ("low" as const) // sub-project 2 replaces this with interval-derived confidence
-        : ("insufficient" as const)
+      ? metricConfidence(opts.interval ?? null, opts.sample)
       : undefined;
 
   return {
@@ -27,6 +27,7 @@ function build<U extends Unit>(value: number, unit: U, opts: ConstructOpts): Met
     basis: opts.basis,
     evidenceIds: opts.evidenceIds,
     ...(opts.sample ? { sample: opts.sample } : {}),
+    ...(opts.interval ? { interval: opts.interval } : {}),
     ...(confidence ? { confidence } : {}),
     ...(opts.assumptions ? { assumptions: opts.assumptions } : {}),
   };
