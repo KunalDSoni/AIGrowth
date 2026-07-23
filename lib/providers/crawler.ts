@@ -50,7 +50,7 @@ export function normalizeHtmlToCrawlEvidence(input: { url: string; finalUrl: str
   const anchorTags = [...html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>/gi)].map((match) => match[1]);
   const visibleText = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ");
 
-  return {
+  const evidence: CrawledPageEvidence = {
     url: input.url,
     finalUrl: input.finalUrl,
     statusCode: input.statusCode,
@@ -72,6 +72,8 @@ export function normalizeHtmlToCrawlEvidence(input: { url: string; finalUrl: str
     observedAt: input.observedAt ?? new Date().toISOString(),
     source: "safe-crawler",
   };
+  Object.defineProperty(evidence, "rawHtml", { value: html, enumerable: false });
+  return evidence;
 }
 
 async function limitedText(response: Response, maxBytes: number) {

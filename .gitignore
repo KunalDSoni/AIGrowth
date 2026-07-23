@@ -8,3 +8,5 @@ test-results
 *.log
 prisma/*.db
 .opengrowth
+.DS_Store
+**/.DS_Store

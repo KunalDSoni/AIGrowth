@@ -138,6 +138,8 @@ export interface TechnicalPageObservation {
 }
 
 export interface CrawledPageEvidence {
+  /** Raw HTML is kept in-memory for the deep rule engine and omitted from persistence. */
+  rawHtml?: string;
   url: string;
   finalUrl: string;
   statusCode: number;
