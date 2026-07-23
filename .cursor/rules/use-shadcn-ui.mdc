@@ -1,0 +1,39 @@
+---
+description: UI must be built with shadcn/ui components only
+alwaysApply: true
+---
+
+# Use shadcn/ui only
+
+All UI in this project is built with **shadcn/ui** components (Radix + Tailwind v4,
+neutral base color). This is a hard requirement.
+
+## Rules
+
+- Build UI from shadcn/ui primitives in `components/ui/*` (`Button`, `Card`,
+  `Badge`, `Table`, `Tabs`, `Sidebar`, `Separator`, etc.). Add new ones with
+  `npx shadcn@latest add <component>`.
+- Do **not** introduce another component library or hand-rolled CSS classes for
+  new UI. Prefer Tailwind utility classes + shadcn variants over the legacy
+  custom classes in `styles/*.css`.
+- Compose class names with the `cn()` helper from `@/lib/utils`.
+- Use design tokens (`bg-background`, `text-foreground`, `text-muted-foreground`,
+  `border`, `bg-card`, `bg-primary`) — never hardcode hex colors in components.
+- Icons come from `lucide-react`.
+- Legacy views styled with `styles/workspace.css` / `styles/features.css` are
+  being migrated to shadcn incrementally; when you touch one, convert it.
+
+## Example
+
+```tsx
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+
+<Card>
+  <CardHeader><CardTitle>Monthly revenue</CardTitle></CardHeader>
+  <CardContent>
+    <div className="text-3xl font-bold">$189,540</div>
+    <Badge variant="secondary">+27.9%</Badge>
+  </CardContent>
+</Card>
+```

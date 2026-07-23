@@ -3,6 +3,10 @@ import Link from "next/link";
 import { ArrowDownRight, ArrowUpRight, Gauge, Radar, Sparkles, Target, Zap } from "lucide-react";
 import { aiVisibilitySummaries, promptOpportunities, recommendations, unifiedGrowthDecisions } from "@/lib/data/demo";
 import { RecommendationCard } from "./recommendation-card";
+import { Button } from "@/components/ui/button";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 
 type Stat = { label: string; value: string; prev: string; current: number; previous: number; Icon: typeof Gauge; suffix?: string };
@@ -16,18 +20,30 @@ function StatCard({ stat }: { stat: Stat }) {
   const change = pct(stat.current, stat.previous);
   const up = change >= 0;
   return (
-    <div className="stat-card">
-      <div className="stat-top">
-        <span className="stat-label">{stat.label}</span>
-        <span className="stat-icon"><stat.Icon size={16} /></span>
-      </div>
-      <div className="stat-value">{stat.value}{stat.suffix && <span>{stat.suffix}</span>}</div>
-      <span className="stat-prev">{stat.prev} previous period</span>
-      <div className="stat-foot">
-        <span className={`stat-delta ${up ? "up" : "down"}`}>{up ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}{up ? "+" : ""}{change}%</span>
-        <small>vs last period</small>
-      </div>
-    </div>
+    <Card className="gap-3 py-5">
+      <CardHeader className="px-5">
+        <CardDescription>{stat.label}</CardDescription>
+        <CardTitle className="text-3xl font-bold tabular-nums">
+          {stat.value}
+          {stat.suffix && <span className="text-base font-medium text-muted-foreground">{stat.suffix}</span>}
+        </CardTitle>
+        <CardAction>
+          <div className="flex size-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
+            <stat.Icon className="size-4" />
+          </div>
+        </CardAction>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-1.5 px-5">
+        <span className="text-xs text-muted-foreground">{stat.prev} previous period</span>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className={cn("gap-1", up ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-red-200 bg-red-50 text-red-700")}>
+            {up ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
+            {up ? "+" : ""}{change}%
+          </Badge>
+          <span className="text-xs text-muted-foreground">vs last period</span>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -54,10 +70,12 @@ export function Dashboard() {
           <h1 className="serif">What should I do next?</h1>
           <p>Focus on these actions first. They balance business value, effort and confidence.</p>
         </div>
-        <Link href="/demo/assistant" className="btn btn-secondary"><Sparkles size={16} /> Ask your growth assistant</Link>
+        <Button asChild variant="outline">
+          <Link href="/demo/assistant"><Sparkles className="size-4" /> Ask your growth assistant</Link>
+        </Button>
       </div>
 
-      <div className="stat-cards">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => <StatCard key={stat.label} stat={stat} />)}
       </div>
 
@@ -102,7 +120,9 @@ export function Dashboard() {
           <h2 className="serif">A focused 7-day plan</h2>
           <p className="muted">Complete the homepage preview and consultation CTAs first. Then use the new messaging to brief the medical-clinic page.</p>
         </div>
-        <Link className="btn btn-primary" href="/demo/assistant">Create my 7-day plan</Link>
+        <Button asChild>
+          <Link href="/demo/assistant">Create my 7-day plan</Link>
+        </Button>
       </div>
     </>
   );
