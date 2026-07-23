@@ -16,15 +16,11 @@ export default function MarketingReportPage() {
 
   useEffect(() => {
     if (!ready) return;
-    const domain = result?.project.domain ?? "northstar.example";
+    const domain = result?.project.domain;
+    if (!domain) return;
     void fetch(`/api/marketing/workspace?domain=${encodeURIComponent(domain)}`)
       .then(async (r) => {
-        if (r.status === 404 && result?.project.domain) return null;
-        if (r.status === 404) {
-          const r2 = await fetch(`/api/marketing/workspace?domain=northstar.example`);
-          if (r2.status === 404) return null;
-          return r2.json();
-        }
+        if (!r.ok) return null;
         return r.json();
       })
       .then((d) => {

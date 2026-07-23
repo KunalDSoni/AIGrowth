@@ -34,12 +34,6 @@ export default function MarketingPacksPage() {
         const { ws: loaded, hint: h } = await loadOrHint(domain);
         setHint(h);
         if (loaded) setWs(loaded);
-        else if (!domain) {
-          // try common demo domain
-          const demo = await loadOrHint("northstar.example");
-          setHint(demo.hint === "ok" ? "ok" : "missing");
-          if (demo.ws) setWs(demo.ws);
-        }
       } catch (e) {
         setError(e instanceof Error ? e.message : "Load failed");
       }

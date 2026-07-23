@@ -26,7 +26,8 @@ export default function MarketingOutreachPage() {
 
   useEffect(() => {
     if (!ready) return;
-    const domain = result?.project.domain ?? "northstar.example";
+    const domain = result?.project.domain;
+    if (!domain) return;
     void fetch(`/api/marketing/workspace?domain=${encodeURIComponent(domain)}`)
       .then((r) => (r.status === 404 ? null : r.json()))
       .then((d) => {

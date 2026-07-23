@@ -1,28 +1,49 @@
 import { NextResponse } from "next/server";
 import { getSearchOpportunityProvider } from "@/lib/providers/search";
 import { buildDemandProxy } from "@/lib/engines/demand-proxy";
-import { businessProfile } from "@/lib/data/demo";
+import { inferBusinessProfile } from "@/lib/engines/live-intelligence";
+import { domainKey, getProjectStore } from "@/lib/projects/store";
 
 export const runtime = "nodejs";
 
-// SEARCH-001 — ranked prompt/topic opportunities from the configured demand provider.
-export async function GET() {
+/**
+ * SEARCH-001 — ranked prompt/topic opportunities for a scanned domain.
+ *
+ * Requires a real prior scan. There is no bundled sample project, so a domain
+ * that has never been analysed returns 409 rather than a stand-in.
+ */
+export async function GET(request: Request) {
+  const domain = new URL(request.url).searchParams.get("domain");
+  if (!domain) {
+    return NextResponse.json({ error: "A domain is required.", opportunities: [] }, { status: 400 });
+  }
+
+  const latest = await getProjectStore().loadLatest(domainKey(domain));
+  if (!latest) {
+    return NextResponse.json(
+      { error: `No analysis for ${domain}. Run a scan first.`, needsScan: true, opportunities: [] },
+      { status: 409 },
+    );
+  }
+
+  const business = inferBusinessProfile(latest);
   const provider = getSearchOpportunityProvider();
   try {
     const signals = await provider.discover({
-      services: businessProfile.services,
-      audiences: businessProfile.audienceSegments,
-      market: businessProfile.market,
+      services: business.services,
+      audiences: business.audienceSegments,
+      market: business.market,
     });
-    const opportunities = buildDemandProxy({ signals, business: businessProfile });
     return NextResponse.json({
       source: provider.source,
-      simulated: provider.source === "demo",
       estimated: signals.some((s) => s.isEstimated),
-      opportunities,
+      opportunities: buildDemandProxy({ signals, business }),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Search provider failed";
-    return NextResponse.json({ error: message, source: provider.source }, { status: 502 });
+    return NextResponse.json(
+      { error: message, source: provider.source, opportunities: [] },
+      { status: 502 },
+    );
   }
 }

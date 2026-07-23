@@ -63,7 +63,7 @@ export function buildBusinessAwareContentOpportunities(input: {
           ],
           factsToVerify: [
             "Any tax dates, compliance rules, or software claims.",
-            "Any claim about Northstar's process, credentials, or client results.",
+            `Any claim about ${input.business.name}'s process, credentials, or client results.`,
             "Any industry-specific operational detail.",
           ],
           internalLinks: candidate.relatedPages,

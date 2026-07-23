@@ -7,7 +7,7 @@ import {
   updateOutreachStatus,
 } from "@/lib/marketing/workspace";
 import { runDeepMarketingEngine } from "@/lib/marketing/deep-engine";
-import { demoAnalyzeForMarketing } from "@/lib/marketing/os";
+import { demoAnalyzeForMarketing } from "@/tests/fixtures/marketing";
 import { buildLiveIntelligence } from "@/lib/engines/live-intelligence";
 
 describe("Deep marketing engine", () => {

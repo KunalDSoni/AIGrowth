@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildMarketingOS, demoAnalyzeForMarketing, recommendTactics, buildCampaignPack } from "@/lib/marketing/os";
+import { buildMarketingOS, recommendTactics, buildCampaignPack } from "@/lib/marketing/os";
+import { demoAnalyzeForMarketing } from "@/tests/fixtures/marketing";
 import { buildLiveIntelligence } from "@/lib/engines/live-intelligence";
 
 describe("Marketing OS", () => {

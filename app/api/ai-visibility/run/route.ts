@@ -1,14 +1,39 @@
 import { NextResponse } from "next/server";
-import { latestObservationRun } from "@/lib/data/demo";
-import { summarizeAIVisibility } from "@/lib/engines/ai-visibility";
-import { aiVisibilityPromptFamilies } from "@/lib/data/demo";
+import { domainKey, getProjectStore } from "@/lib/projects/store";
 
 export const runtime = "nodejs";
 
-// AIV-002 — return the latest reproducible observation run and its summary.
-export async function GET() {
-  const run = latestObservationRun;
-  const family = aiVisibilityPromptFamilies.find((f) => f.id === run.familyId);
-  const summaries = family ? summarizeAIVisibility([family], run.observations) : [];
-  return NextResponse.json({ run, summary: summaries[0] ?? null, simulated: true });
+/**
+ * AIV-002 — latest real answer-engine observation run for a scanned domain.
+ *
+ * Previously returned a bundled simulated run. It now reports only what was
+ * actually observed; an unscanned domain yields nothing.
+ */
+export async function GET(request: Request) {
+  const domain = new URL(request.url).searchParams.get("domain");
+  if (!domain) {
+    return NextResponse.json({ error: "A domain is required.", run: null }, { status: 400 });
+  }
+
+  const latest = await getProjectStore().loadLatest(domainKey(domain));
+  if (!latest) {
+    return NextResponse.json(
+      { error: `No analysis for ${domain}. Run a scan first.`, needsScan: true, run: null },
+      { status: 409 },
+    );
+  }
+
+  return NextResponse.json({
+    run: {
+      runId: latest.geo.runId,
+      model: latest.geo.model,
+      sampleSize: latest.geo.sampleSize,
+      observations: latest.geo.observations,
+      errors: latest.geo.errors,
+    },
+    summary: {
+      brandMentionRate: latest.geo.brandMentionRate,
+      firstPartyCitationShare: latest.geo.firstPartyCitationShare,
+    },
+  });
 }

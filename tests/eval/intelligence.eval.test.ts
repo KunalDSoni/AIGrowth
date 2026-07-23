@@ -5,7 +5,7 @@ import {
   evidenceReferences,
   outcomeLearningRecords,
   recommendations,
-} from "@/lib/data/demo";
+} from "@/tests/fixtures/demo";
 import { calculateRecommendationPriority } from "@/lib/engines/priority";
 import { flagClaims } from "@/lib/engines/brief-builder";
 import { MIN_SAMPLE_SIZE } from "@/lib/engines/competitor-intelligence";
