@@ -154,10 +154,11 @@ export interface MarketingPod {
 
 export interface SimulationResult {
   tacticId: string;
-  expectedLeadLiftBand: string;
-  confidence: "Low" | "Medium" | "High";
-  assumptions: string[];
-  costHours: number;
+  costHours: import("@/lib/metrics/types").Metric<"hours">;
+  /** No conversion baseline exists, so lift cannot be modelled honestly. */
+  liftEstimable: false;
+  reason: string;
+  evidenceIds: string[];
 }
 
 export interface ConnectorStatus {

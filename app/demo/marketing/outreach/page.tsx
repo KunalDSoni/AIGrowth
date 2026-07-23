@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useLiveAnalyze } from "@/lib/client/live-project";
 import type { MarketingWorkspace } from "@/lib/marketing/workspace";
 import type { OutreachTarget } from "@/lib/marketing/types";
+import { formatMetric } from "@/lib/metrics/format";
 
 const NEXT: Record<OutreachTarget["status"], OutreachTarget["status"]> = {
   todo: "pitched",
@@ -175,7 +176,7 @@ export default function MarketingOutreachPage() {
                 <div className="pt-2">
                   {ws.simulations.slice(0, 5).map((s) => (
                     <p key={s.tacticId} className="text-sm text-muted-foreground">
-                      {s.tacticId}: {s.expectedLeadLiftBand} ({s.confidence})
+                      {s.tacticId}: {formatMetric(s.costHours)} effort · {s.reason}
                     </p>
                   ))}
                 </div>

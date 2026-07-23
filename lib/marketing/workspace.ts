@@ -21,6 +21,7 @@ import type {
 } from "@/lib/marketing/types";
 import { renderPositionReportHtml } from "@/lib/marketing/report-html";
 import { dataDir } from "@/lib/storage/data-dir";
+import { hours as hoursMetric } from "@/lib/metrics/construct";
 
 const DIR = dataDir("marketing-workspaces");
 
@@ -229,10 +230,13 @@ export async function generateWorkspace(input: {
     ],
     simulations: deep.tactics.slice(0, 5).map((t) => ({
       tacticId: t.id,
-      expectedLeadLiftBand: t.priority >= 90 ? "+8–18% directional" : "+3–10% directional",
-      confidence: deep.context.geoSample >= 5 ? "Medium" : "Low",
-      assumptions: ["Stable traffic", "Offer unchanged", "GEO remains directional"],
-      costHours: deep.packs.find((p) => p.tacticId === t.id)?.effortHours ?? 3,
+      costHours: hoursMetric(deep.packs.find((p) => p.tacticId === t.id)?.effortHours ?? 3, {
+        basis: "measured",
+        evidenceIds: t.evidenceIds,
+      }),
+      liftEstimable: false as const,
+      reason: "Lift not estimable without a conversion baseline. Connect GA4 to model it.",
+      evidenceIds: t.evidenceIds,
     })),
     connectors: [
       {
