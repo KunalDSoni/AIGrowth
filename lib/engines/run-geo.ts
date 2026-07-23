@@ -1,20 +1,29 @@
-import { deriveGeoPrompts } from "@/lib/engines/prompt-derive";
+import { buildPromptUniverse } from "@/lib/engines/prompt-universe";
 import { extractBrandSignals } from "@/lib/engines/geo-extract";
 import type { GeoObservation, GeoResult } from "@/lib/analyze/types";
-import type { GeminiVisibilityProvider } from "@/lib/providers/gemini-visibility";
 
-const MAX_PROMPTS = 6;
-const CONCURRENCY = 2;
+const TARGET_PROMPTS = 24;
+const CONCURRENCY = 4;
 const TIMEOUT_MS = 25_000;
+
+/** Structural provider interface so sampling is testable with an injected fake. */
+export interface GeoAnswerProvider {
+  model: string;
+  answer(
+    prompt: string,
+    opts?: { timeoutMs?: number; retries?: number },
+  ): Promise<{ rawText: string; usage?: { promptTokens?: number; completionTokens?: number } }>;
+}
 
 export interface RunGeoInput {
   brandGuess: string;
   domain: string;
   services: string[];
-  provider: GeminiVisibilityProvider;
+  audiences?: string[];
+  provider: GeoAnswerProvider;
   runId?: string;
   maxPrompts?: number;
-  /** When set, use these exact prompts instead of deriveGeoPrompts. */
+  /** When set, use these exact prompts instead of buildPromptUniverse. */
   prompts?: string[];
 }
 
@@ -34,12 +43,13 @@ async function mapLimit<T, R>(items: T[], limit: number, worker: (item: T) => Pr
 export async function runGeoProbes(input: RunGeoInput): Promise<GeoResult> {
   const prompts = (
     input.prompts ??
-    deriveGeoPrompts({
+    buildPromptUniverse({
       brandGuess: input.brandGuess,
       domain: input.domain,
       services: input.services,
+      audiences: input.audiences,
     })
-  ).slice(0, input.maxPrompts ?? MAX_PROMPTS);
+  ).slice(0, input.maxPrompts ?? TARGET_PROMPTS);
 
   const runId = input.runId ?? `geo-${Date.now()}`;
   const errors: string[] = [];
