@@ -7,6 +7,7 @@ import {
   type AnalyzeDelta,
   type AnalyzeSnapshot,
 } from "@/lib/engines/analyze-delta";
+import { dataDir } from "@/lib/storage/data-dir";
 
 /** Normalize a URL or hostname to a stable domain key (no www.). */
 export function domainKey(urlOrDomain: string): string {
@@ -91,7 +92,7 @@ export function createFileProjectStore(baseDir: string): ProjectStore {
   };
 }
 
-const DEFAULT_DIR = join(process.cwd(), ".data", "projects");
+const DEFAULT_DIR = dataDir("projects");
 
 let defaultStore: ProjectStore | null = null;
 

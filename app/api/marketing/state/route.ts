@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { dataDir } from "@/lib/storage/data-dir";
 
 export const runtime = "nodejs";
 
-const DIR = join(process.cwd(), ".data", "marketing");
+const DIR = dataDir("marketing");
 
 const patchSchema = z.object({
   kind: z.enum(["pack", "outreach", "pod"]),

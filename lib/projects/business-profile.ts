@@ -2,8 +2,9 @@ import { promises as fs } from "fs";
 import path from "path";
 import type { BusinessProfileOverrides, ProjectGoals } from "@/lib/engines/live-intelligence";
 import type { ConfirmationEvent } from "@/lib/engines/business-graph";
+import { dataDir } from "@/lib/storage/data-dir";
 
-const DATA_DIR = path.join(process.cwd(), ".data", "profiles");
+const DATA_DIR = dataDir("profiles");
 
 export interface StoredBusinessProfile {
   domain: string;

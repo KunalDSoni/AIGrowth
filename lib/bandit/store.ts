@@ -4,6 +4,7 @@ import {
   createExperiment,
   type BanditExperiment,
 } from "@/lib/bandit/thompson";
+import { dataDir } from "@/lib/storage/data-dir";
 
 export interface BanditStore {
   get(experimentId: string): Promise<BanditExperiment | null>;
@@ -67,7 +68,7 @@ export class MemoryBanditStore implements BanditStore {
 }
 
 export class FileBanditStore implements BanditStore {
-  constructor(private readonly dir = join(process.cwd(), ".data", "bandit")) {}
+  constructor(private readonly dir = dataDir("bandit")) {}
 
   private pathFor(id: string) {
     return join(this.dir, `${id.replace(/[^a-zA-Z0-9._-]/g, "_")}.json`);

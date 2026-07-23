@@ -5,11 +5,12 @@ import { compareWithOurSeo, crawlCompetitorHomepage, type CompetitorComparison }
 import { publicWebsiteSchema } from "@/lib/security/url";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { dataDir } from "@/lib/storage/data-dir";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const DIR = join(process.cwd(), ".data", "competitors");
+const DIR = dataDir("competitors");
 
 const schema = z.object({
   domain: z.string().min(1),

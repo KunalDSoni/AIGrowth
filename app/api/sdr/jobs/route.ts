@@ -5,11 +5,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { DemoProspectSource, runSdrLeadPipeline, type SdrJob } from "@/lib/engines/sdr-lead-pipeline";
 import { generateAuditReport } from "@/lib/engines/audit-report";
+import { dataDir } from "@/lib/storage/data-dir";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
-const DIR = join(process.cwd(), ".data", "sdr-jobs");
+const DIR = dataDir("sdr-jobs");
 
 const schema = z.object({
   niche: z.string().min(2),

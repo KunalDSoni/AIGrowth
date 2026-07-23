@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
+import { dataDir } from "@/lib/storage/data-dir";
 
 export interface StoredObject {
   id: string;
@@ -17,7 +18,7 @@ export interface ObjectStore {
 }
 
 export class FileObjectStore implements ObjectStore {
-  constructor(private readonly dir = join(process.cwd(), ".data", "reports")) {}
+  constructor(private readonly dir = dataDir("reports")) {}
 
   async put(input: { key?: string; body: string | Buffer; contentType: string }): Promise<StoredObject> {
     await mkdir(this.dir, { recursive: true });

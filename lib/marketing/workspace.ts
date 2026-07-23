@@ -20,8 +20,9 @@ import type {
   PositionReport,
 } from "@/lib/marketing/types";
 import { renderPositionReportHtml } from "@/lib/marketing/report-html";
+import { dataDir } from "@/lib/storage/data-dir";
 
-const DIR = join(process.cwd(), ".data", "marketing-workspaces");
+const DIR = dataDir("marketing-workspaces");
 
 export interface MarketingWorkspace {
   domain: string;

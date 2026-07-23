@@ -15,10 +15,11 @@ import { loadBusinessOverrides } from "@/lib/projects/business-profile";
 import { buildLiveIntelligence } from "@/lib/engines/live-intelligence";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { dataDir } from "@/lib/storage/data-dir";
 
 export const runtime = "nodejs";
 
-const CAMPAIGN_DIR = join(process.cwd(), ".data", "campaigns");
+const CAMPAIGN_DIR = dataDir("campaigns");
 
 async function loadCampaign(domain: string): Promise<Campaign | null> {
   try {

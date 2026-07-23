@@ -4,6 +4,7 @@
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { dataDir } from "@/lib/storage/data-dir";
 
 export type AssetApproval = "draft" | "reviewed" | "approved" | "rejected";
 
@@ -73,7 +74,7 @@ export function createAssetVersionStore(baseDir: string) {
   };
 }
 
-const DEFAULT = join(process.cwd(), ".data", "assets");
+const DEFAULT = dataDir("assets");
 let store: ReturnType<typeof createAssetVersionStore> | null = null;
 
 export function getAssetVersionStore() {
