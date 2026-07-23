@@ -116,5 +116,7 @@ export function crawlEvidenceToTechnicalObservation(evidence: CrawledPageEvidenc
     imagesMissingAlt: evidence.imagesMissingAlt,
     internalLinkCount: evidence.internalLinkCount,
     pageType: pathname === "/" ? "home" : "service",
+    hasClearCta: evidence.hasClearCta,
+    hasProofSignal: evidence.hasProofSignal,
   };
 }

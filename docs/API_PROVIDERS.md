@@ -6,9 +6,10 @@ Provider interfaces live in `lib/providers/contracts.ts`. Mock implementations a
 
 Adapters validate and normalize upstream responses, declare their source, time out, cap payload sizes, and map provider errors into application errors. UI code must not import provider SDK response types.
 
-- `WebsiteCrawler`: fetches permitted public pages with DNS/private-network checks, redirect checks, timeout and size controls. `SafeWebsiteCrawler` is opt-in with `OPENGROWTH_REAL_CRAWL=true`; mock mode remains the default.
+- `WebsiteCrawler`: fetches permitted public pages with DNS/private-network checks, per-hop redirect revalidation (max 5), ports 80/443 only, timeout and size controls. Live audit ingestion is opt-in with `OPENGROWTH_REAL_CRAWL=true`; mock mode remains the default.
 - `AuditProvider`: returns normalized issues.
-- `KeywordProvider` and `SearchDataProvider`: return sourced, market-aware search signals.
+- `SearchOpportunityProvider` (`lib/providers/search.ts`): `DemoSearchProvider`, live `SearchConsoleAdapter` (`GSC_SITE_URL` + `GSC_ACCESS_TOKEN`), and HTTP `KeywordProviderAdapter` (`KEYWORD_PROVIDER_URL`, optional `KEYWORD_PROVIDER_API_KEY`). `getSearchOpportunityProvider()` selects via `OPENGROWTH_SEARCH_PROVIDER=auto|demo|search-console|keyword-provider`.
+- `KeywordProvider` and `SearchDataProvider` (contracts): return sourced, market-aware search signals.
 - `CompetitorProvider`: returns directional comparisons with unavailable fields explicit.
 - `AITextProvider`: returns structured, review-required assets.
 - `AnalyticsProvider`: receives the fixed product event vocabulary.
@@ -19,6 +20,10 @@ Implement `AITextProvider`, select it through an environment-aware factory, keep
 
 ## Current crawler state
 
-The current crawler is a single-page ingestion adapter. `/api/audit` returns normalized crawl evidence and technical issues generated from that evidence when `OPENGROWTH_REAL_CRAWL=true`. If the crawl fails or is unsafe, the route returns a simulated fallback with `crawlError` rather than bypassing controls.
+The crawler is a hardened single-page ingestion adapter: SSRF DNS checks, metadata/private IP blocks, port allowlist (80/443), and manual redirect following with revalidation on every hop (max 5). `/api/audit` returns normalized crawl evidence and technical issues when `OPENGROWTH_REAL_CRAWL=true`. If the crawl fails or is unsafe, the endpoint returns a simulated fallback with `crawlError` rather than bypassing controls.
+
+## Search demand providers
+
+`GET /api/opportunities` uses `getSearchOpportunityProvider()`. Without GSC or keyword credentials it returns labelled demo estimates (`simulated: true`). With GSC credentials it calls Search Analytics and labels rows as `search-console` / not estimated. With only `KEYWORD_PROVIDER_URL`, it POSTs `{ services, audiences, market }` and expects `{ signals: [{ query|keyword, monthlySearches|volume, competitionIndex|competition, service?, topic? }] }`.
 
 Audit responses are persisted locally through `FileAuditRunRepository` at `.opengrowth/audit-runs.json` by default. Override with `OPENGROWTH_AUDIT_STORE_PATH`. Set `OPENGROWTH_AUDIT_STORE=prisma` to use the project-scoped `PrismaAuditRunRepository` against PostgreSQL. The Prisma adapter requires an existing, authorized project row; authentication/organization context should pass `organizationId` when wired into a production request.

@@ -9,11 +9,11 @@
 - Secrets are environment variables and `.env*` is ignored.
 - Mock provider state is local to the browser; privacy copy says so.
 - Destructive demo deletion requires a confirmation dialog.
-- Opt-in safe crawler resolves DNS server-side, rejects private/local targets before request and after redirect, applies timeouts, caps bytes, and only accepts HTML.
+- Opt-in safe crawler resolves DNS server-side, rejects private/local/metadata targets, allowlists ports 80/443, follows redirects manually with per-hop revalidation (max 5), applies timeouts, caps bytes, and only accepts HTML.
 
 ## Production crawler requirements
 
-URL text validation alone is not sufficient against SSRF. The current `SafeWebsiteCrawler` adds DNS checks and redirect checks, but a production crawler should also pin/verify addresses to prevent rebinding, enforce an explicit port allowlist, cap redirect depth, enforce decompressed byte limits, use an isolated egress service, persist robots decisions, and add durable rate limiting. It must never bypass authentication, CAPTCHAs or bot protections.
+URL text validation alone is not sufficient against SSRF. `SafeWebsiteCrawler` now enforces DNS checks, port allowlisting, redirect-depth caps, and per-hop host revalidation. A production deployment should still pin/verify resolved addresses against rebinding during the TCP connect, use an isolated egress service, persist robots decisions, and add durable rate limiting. It must never bypass authentication, CAPTCHAs or bot protections.
 
 ## Before production
 

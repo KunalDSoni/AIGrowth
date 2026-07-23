@@ -305,8 +305,8 @@ export function buildLiveIntelligence(
         targetQuery: profile.services[0] ?? classified.purpose,
         purpose: classified.purpose,
         lastUpdated: result.analyzedAt,
-        hasProof: false,
-        hasClearCta: false,
+        hasProof: obs.hasProofSignal ?? false,
+        hasClearCta: obs.hasClearCta ?? false,
         metrics: {
           impressions: 0,
           clicks: 0,

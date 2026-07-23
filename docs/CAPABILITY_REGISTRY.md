@@ -31,7 +31,7 @@ sync with `lib/engines/*` and the demo dataset, not aspirations.
 
 | Capability | Epic | Status | Location |
 |---|---|---|---|
-| Secure single-page crawl (SSRF-safe) | CRAWL-001 | FUNCTIONAL_BUT_INCOMPLETE | `lib/providers/crawler.ts`, `lib/security/url.ts` |
+| Secure single-page crawl (SSRF-safe) | CRAWL-001 | COMPLETE | `lib/providers/crawler.ts`, `lib/security/url.ts` |
 | Deep HTML rule engine | CRAWL/TSEO | COMPLETE | `lib/seo-engine/**` |
 | Site inventory + page classification | CRAWL-002 | COMPLETE | `lib/engines/site-inventory.ts` |
 
@@ -47,7 +47,7 @@ sync with `lib/engines/*` and the demo dataset, not aspirations.
 | Capability | Epic | Status | Location |
 |---|---|---|---|
 | Search-backed opportunity discovery | SEARCH-001 | COMPLETE | `lib/providers/search.ts`, `lib/engines/demand-proxy.ts`, `lib/engines/content-gap.ts` |
-| Search Console / keyword provider adapters | SEARCH-001 | FUNCTIONAL_BUT_INCOMPLETE | `lib/providers/search.ts` (fail-fast placeholders) |
+| Search Console / keyword provider adapters | SEARCH-001 | COMPLETE | `lib/providers/search.ts` (`GSC_*`, `KEYWORD_PROVIDER_*`) |
 | Intent / funnel / topic-cluster engine | SEARCH-002 | COMPLETE | `lib/engines/search-intent.ts` |
 | GSC-ready content inventory | CONTENT-001 | COMPLETE | `lib/engines/content-inventory.ts` |
 | Content quality & refresh engine | CONTENT-002 | COMPLETE | `lib/engines/content-inventory.ts` |

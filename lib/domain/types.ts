@@ -135,6 +135,8 @@ export interface TechnicalPageObservation {
   imagesMissingAlt: number;
   internalLinkCount: number;
   pageType: WebsitePageProfile["pageType"];
+  hasClearCta?: boolean;
+  hasProofSignal?: boolean;
 }
 
 export interface CrawledPageEvidence {
@@ -146,6 +148,8 @@ export interface CrawledPageEvidence {
   title?: string;
   description?: string;
   canonical?: string;
+  /** From `<html lang>` or content-language meta when present. */
+  language?: string;
   h1Count: number;
   headings: { level: number; text: string }[];
   imageCount: number;
@@ -158,6 +162,10 @@ export interface CrawledPageEvidence {
   robotsDirectives?: string;
   openGraphTags: number;
   twitterTags: number;
+  /** Heuristic: page has a clear CTA pattern (button/link text). */
+  hasClearCta: boolean;
+  /** Heuristic: page mentions proof patterns (case study, testimonial, certified…). */
+  hasProofSignal: boolean;
   observedAt: string;
   source: "safe-crawler";
 }

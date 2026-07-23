@@ -21,6 +21,8 @@ function page(overrides: Partial<CrawledPageEvidence> = {}): CrawledPageEvidence
     hasStructuredData: true,
     openGraphTags: 4,
     twitterTags: 2,
+    hasClearCta: true,
+    hasProofSignal: true,
     observedAt: new Date().toISOString(),
     source: "safe-crawler",
     ...overrides,

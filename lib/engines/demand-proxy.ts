@@ -49,7 +49,11 @@ function labelsFor(signal: DemandSignal): string[] {
       ? "Demo data"
       : signal.source === "crawl-derived"
         ? "Crawl-derived estimate"
-        : signal.source,
+        : signal.source === "search-console"
+          ? "Search Console"
+          : signal.source === "keyword-provider"
+            ? "Keyword provider"
+            : signal.source,
   );
   if (signal.isEstimated) labels.push("Estimated");
   return labels;
