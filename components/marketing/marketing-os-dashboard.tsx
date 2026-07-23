@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { KpiStatCard } from "@/components/marketing/kpi-stat-card";
@@ -8,113 +8,185 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLiveAnalyze } from "@/lib/client/live-project";
-import type { MarketingOSSnapshot } from "@/lib/marketing/types";
+import type { MarketingWorkspace } from "@/lib/marketing/workspace";
 
-const PHASES = [
-  { n: 1, name: "Position + Packs" },
-  { n: 2, name: "Distribution + Experiments" },
-  { n: 3, name: "GEO + Agency" },
-  { n: 4, name: "Truth + Ship" },
-  { n: 5, name: "Marketing Pods" },
-];
+async function apiGenerate(domain: string | undefined, useDemo: boolean) {
+  const res = await fetch("/api/marketing/workspace", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ domain, useDemo, hoursPerWeek: 8 }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? "Generate failed");
+  return data.workspace as MarketingWorkspace;
+}
+
+async function apiLoad(domain: string) {
+  const res = await fetch(`/api/marketing/workspace?domain=${encodeURIComponent(domain)}`);
+  const data = await res.json();
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(data.error ?? "Load failed");
+  return data.workspace as MarketingWorkspace;
+}
+
+async function apiAction(body: Record<string, unknown>) {
+  const res = await fetch("/api/marketing/workspace", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? "Action failed");
+  return data.workspace as MarketingWorkspace;
+}
 
 export function MarketingOsDashboard() {
   const { result, ready } = useLiveAnalyze();
-  const [os, setOs] = useState<MarketingOSSnapshot | null>(null);
-  const [source, setSource] = useState<string>("");
+  const [ws, setWs] = useState<MarketingWorkspace | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
-  async function load(forceDemo = false) {
+  const domain = result?.project.domain;
+
+  const refresh = useCallback(async () => {
+    if (!domain && !ws?.domain) return;
+    const d = domain ?? ws!.domain;
+    const loaded = await apiLoad(d);
+    if (loaded) setWs(loaded);
+  }, [domain, ws?.domain]);
+
+  useEffect(() => {
+    if (!ready) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        if (domain) {
+          const loaded = await apiLoad(domain);
+          if (!cancelled && loaded) setWs(loaded);
+        }
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Load failed");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, domain]);
+
+  async function generate(useDemo: boolean) {
     setBusy(true);
     setError(null);
+    setMessage(null);
     try {
-      const res = await fetch("/api/marketing/os", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          domain: forceDemo ? undefined : result?.project.domain,
-          useDemo: forceDemo || !result,
-          hoursPerWeek: 8,
-        }),
-      });
-      const data = (await res.json()) as { os?: MarketingOSSnapshot; source?: string; error?: string };
-      if (!res.ok || !data.os) throw new Error(data.error ?? "Failed to load Marketing OS");
-      setOs(data.os);
-      setSource(data.source ?? "");
+      const workspace = await apiGenerate(useDemo ? undefined : domain, useDemo || !domain);
+      setWs(workspace);
+      setMessage(
+        `Generated for ${workspace.brand}. Report HTML saved. ${workspace.packs.length} packs ready for approval.`,
+      );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Load failed");
+      setError(e instanceof Error ? e.message : "Generate failed");
     } finally {
       setBusy(false);
     }
   }
 
-  useEffect(() => {
-    if (!ready) return;
-    void load(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, result?.project.domain]);
+  async function approvePlan() {
+    if (!ws) return;
+    setBusy(true);
+    try {
+      const next = await apiAction({ action: "approve_plan", domain: ws.domain });
+      setWs(next);
+      setMessage("Plan approved. Pod unlocked for pack production.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Approve failed");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   if (!ready) return null;
+
+  const approvedCount = ws?.packs.filter((p) => p.status === "approved" || p.status === "shipped").length ?? 0;
 
   return (
     <>
       <PageHeader
         title="Marketing OS"
-        description="AI Agentic Marketing Operating System — Position Report, campaign packs, outreach, experiments, pods."
+        description="Generate a real Position Report + campaign packs from live analyze (or demo), approve the plan, open the HTML report."
         action={
           <div className="flex flex-wrap gap-2">
-            <Badge variant="secondary">Phases 1–5</Badge>
-            {source ? <Badge variant="outline">{source}</Badge> : null}
-            <Button size="sm" variant="outline" disabled={busy} onClick={() => load(false)}>
-              Refresh
+            <Button disabled={busy} onClick={() => generate(false)}>
+              {busy ? "Working…" : domain ? "Generate from live site" : "Generate (needs analyze)"}
             </Button>
-            <Button size="sm" variant="secondary" disabled={busy} onClick={() => load(true)}>
-              Demo snapshot
+            <Button disabled={busy} variant="secondary" onClick={() => generate(true)}>
+              Generate demo workspace
             </Button>
+            {ws ? (
+              <Button disabled={busy} variant="outline" onClick={() => refresh()}>
+                Reload saved
+              </Button>
+            ) : null}
           </div>
         }
       />
 
+      {!domain && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">No live analyze in this browser</CardTitle>
+            <CardDescription>
+              Run a site analyze on the Dashboard first for live evidence — or generate a demo workspace to test the full flow.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline">
+              <Link href="/demo/dashboard">Go to Dashboard</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {error && <p className="text-sm text-destructive">{error}</p>}
+      {message && <p className="text-sm text-muted-foreground">{message}</p>}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        {PHASES.map((p) => (
-          <Card key={p.n} className="py-4">
-            <CardHeader className="gap-1">
-              <CardDescription>Phase {p.n}</CardDescription>
-              <CardTitle className="text-base">{p.name}</CardTitle>
-              <Badge variant="secondary" className="w-fit">
-                Active
-              </Badge>
-            </CardHeader>
-          </Card>
-        ))}
-      </div>
+      {!ws && (
+        <Card>
+          <CardHeader>
+            <CardTitle>No workspace yet</CardTitle>
+            <CardDescription>Click Generate. This creates a persisted workspace under .data/marketing-workspaces and a printable HTML report.</CardDescription>
+          </CardHeader>
+        </Card>
+      )}
 
-      {os && (
+      {ws && (
         <>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">{ws.source}</Badge>
+            <Badge variant="outline">{ws.domain}</Badge>
+            <Badge variant={ws.approvals.planApproved ? "secondary" : "outline"}>
+              plan {ws.approvals.planApproved ? "approved" : "pending"}
+            </Badge>
+            <Badge variant="outline">
+              packs approved {approvedCount}/{ws.packs.length}
+            </Badge>
+            <span className="text-xs text-muted-foreground">Updated {new Date(ws.updatedAt).toLocaleString()}</span>
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {os.report.kpis.map((kpi) => (
-              <KpiStatCard
-                key={kpi.id}
-                label={kpi.label}
-                value={kpi.value}
-                previous={kpi.previous}
-                deltaPct={kpi.deltaPct}
-                hint={kpi.hint}
-              />
+            {ws.report.kpis.map((kpi) => (
+              <KpiStatCard key={kpi.id} label={kpi.label} value={kpi.value} hint={kpi.hint} previous={kpi.previous} />
             ))}
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle>Channel mix · 8h/week</CardTitle>
-                <CardDescription>Effort allocation from ranked marketing tactics</CardDescription>
+                <CardTitle>Channel mix</CardTitle>
+                <CardDescription>Hours this week from ranked tactics</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {os.channelMix.map((c) => (
+                {ws.channelMix.map((c) => (
                   <div key={c.channel} className="space-y-1">
                     <div className="flex justify-between text-sm">
                       <span className="capitalize">{c.channel}</span>
@@ -132,19 +204,27 @@ export function MarketingOsDashboard() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Agent crew</CardTitle>
-                <CardDescription>Approval-gated orchestration</CardDescription>
+                <CardTitle>Approvals</CardTitle>
+                <CardDescription>Human gates — agents do not publish</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                {os.agentLog.map((step) => (
-                  <div key={step.agent} className="flex items-start justify-between gap-2 border-b border-border/60 py-2 last:border-0">
-                    <div>
-                      <p className="text-sm font-medium">{step.agent}</p>
-                      <p className="text-xs text-muted-foreground">{step.summary}</p>
-                    </div>
-                    <Badge variant={step.status === "needs_approval" ? "outline" : "secondary"}>{step.status}</Badge>
-                  </div>
-                ))}
+                <Button className="w-full" disabled={busy || ws.approvals.planApproved} onClick={approvePlan}>
+                  {ws.approvals.planApproved ? "Plan approved ✓" : "Approve 30/60/90 plan"}
+                </Button>
+                {ws.reportHtmlUrl ? (
+                  <Button asChild variant="outline" className="w-full">
+                    <a href={ws.reportHtmlUrl} target="_blank" rel="noreferrer">
+                      Open Position Report HTML
+                    </a>
+                  </Button>
+                ) : null}
+                {ws.weeklyHtmlUrl ? (
+                  <Button asChild variant="outline" className="w-full">
+                    <a href={ws.weeklyHtmlUrl} target="_blank" rel="noreferrer">
+                      Open Weekly Pack HTML
+                    </a>
+                  </Button>
+                ) : null}
               </CardContent>
             </Card>
           </div>
@@ -152,49 +232,45 @@ export function MarketingOsDashboard() {
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Position Report</CardTitle>
-                <CardDescription>{os.report.brand}</CardDescription>
+                <CardTitle className="text-base">Report</CardTitle>
+                <CardDescription>Improvisation + chapters</CardDescription>
               </CardHeader>
               <CardContent>
                 <Button asChild className="w-full">
-                  <Link href="/demo/marketing/report">Open report</Link>
+                  <Link href="/demo/marketing/report">Open report desk</Link>
                 </Button>
               </CardContent>
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Campaign Packs</CardTitle>
-                <CardDescription>{os.packs.length} drafts</CardDescription>
+                <CardTitle className="text-base">Campaign packs</CardTitle>
+                <CardDescription>{ws.packs.length} packs · approve each</CardDescription>
               </CardHeader>
               <CardContent>
                 <Button asChild variant="outline" className="w-full">
-                  <Link href="/demo/marketing/packs">Open packs</Link>
+                  <Link href="/demo/marketing/packs">Manage packs</Link>
                 </Button>
               </CardContent>
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Outreach + Weekly</CardTitle>
-                <CardDescription>
-                  {os.outreach.length} targets · week {os.weekly.weekOf}
-                </CardDescription>
+                <CardTitle className="text-base">Outreach</CardTitle>
+                <CardDescription>{ws.outreach.length} targets</CardDescription>
               </CardHeader>
               <CardContent>
                 <Button asChild variant="outline" className="w-full">
-                  <Link href="/demo/marketing/outreach">Phase 2 desk</Link>
+                  <Link href="/demo/marketing/outreach">Outreach desk</Link>
                 </Button>
               </CardContent>
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Agency + Pods</CardTitle>
-                <CardDescription>
-                  {os.agencyClients.length} clients · {os.pods.length} pods
-                </CardDescription>
+                <CardTitle className="text-base">Agency / Pods</CardTitle>
+                <CardDescription>{ws.pods[0]?.status ?? "—"}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Button asChild variant="outline" className="w-full">
-                  <Link href="/demo/marketing/agency">Phases 3–5</Link>
+                  <Link href="/demo/marketing/agency">Open suite</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -202,21 +278,16 @@ export function MarketingOsDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>30 / 60 / 90 plan</CardTitle>
-              <CardDescription>Improvisation roadmap from live (or demo) evidence</CardDescription>
+              <CardTitle>Agent activity (persisted)</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-3">
-              {os.plan.map((m) => (
-                <div key={m.window} className="rounded-lg border p-4">
-                  <Badge variant="secondary" className="mb-2">
-                    {m.window} days
-                  </Badge>
-                  <p className="font-medium">{m.title}</p>
-                  <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-muted-foreground">
-                    {m.items.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
+            <CardContent className="space-y-2">
+              {ws.agentLog.slice(0, 8).map((step, i) => (
+                <div key={`${step.agent}-${step.at}-${i}`} className="flex justify-between gap-2 border-b py-2 text-sm last:border-0">
+                  <div>
+                    <p className="font-medium">{step.agent}</p>
+                    <p className="text-muted-foreground">{step.summary}</p>
+                  </div>
+                  <Badge variant={step.status === "needs_approval" ? "outline" : "secondary"}>{step.status}</Badge>
                 </div>
               ))}
             </CardContent>

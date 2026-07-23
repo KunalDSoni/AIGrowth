@@ -8,21 +8,28 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLiveAnalyze } from "@/lib/client/live-project";
-import type { MarketingOSSnapshot } from "@/lib/marketing/types";
+import type { MarketingWorkspace } from "@/lib/marketing/workspace";
 
 export default function MarketingReportPage() {
   const { result, ready } = useLiveAnalyze();
-  const [os, setOs] = useState<MarketingOSSnapshot | null>(null);
+  const [ws, setWs] = useState<MarketingWorkspace | null>(null);
 
   useEffect(() => {
     if (!ready) return;
-    void fetch("/api/marketing/os", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ domain: result?.project.domain, useDemo: !result }),
-    })
-      .then((r) => r.json())
-      .then((d) => setOs(d.os ?? null));
+    const domain = result?.project.domain ?? "northstar.example";
+    void fetch(`/api/marketing/workspace?domain=${encodeURIComponent(domain)}`)
+      .then(async (r) => {
+        if (r.status === 404 && result?.project.domain) return null;
+        if (r.status === 404) {
+          const r2 = await fetch(`/api/marketing/workspace?domain=northstar.example`);
+          if (r2.status === 404) return null;
+          return r2.json();
+        }
+        return r.json();
+      })
+      .then((d) => {
+        if (d?.workspace) setWs(d.workspace);
+      });
   }, [ready, result?.project.domain]);
 
   if (!ready) return null;
@@ -30,34 +37,48 @@ export default function MarketingReportPage() {
   return (
     <>
       <PageHeader
-        title="SEO + GEO Position Report"
-        description="Client-ready position, impact, and Fix → Publish → Promote → Measure improvisation."
+        title="Position Report desk"
+        description="Persisted SEO+GEO position + improvisation. Open the HTML artifact for client delivery."
         action={
-          <Button asChild variant="outline">
-            <Link href="/demo/marketing">Back to Marketing OS</Link>
-          </Button>
+          <div className="flex gap-2">
+            {ws?.reportHtmlUrl ? (
+              <Button asChild>
+                <a href={ws.reportHtmlUrl} target="_blank" rel="noreferrer">
+                  Open HTML report
+                </a>
+              </Button>
+            ) : null}
+            <Button asChild variant="outline">
+              <Link href="/demo/marketing">Back</Link>
+            </Button>
+          </div>
         }
       />
 
-      {os && (
+      {!ws && (
+        <Card>
+          <CardHeader>
+            <CardTitle>No report yet</CardTitle>
+            <CardDescription>Generate a workspace on the Marketing OS page.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+              <Link href="/demo/marketing">Generate</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {ws && (
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {os.report.kpis.map((kpi) => (
+            {ws.report.kpis.map((kpi) => (
               <KpiStatCard key={kpi.id} label={kpi.label} value={kpi.value} hint={kpi.hint} />
             ))}
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {os.report.scoreboard.labels.map((l) => (
-              <Badge key={l} variant="outline">
-                {l}
-              </Badge>
-            ))}
-            <Badge variant="secondary">pressure: {os.report.scoreboard.competitorPressure}</Badge>
-          </div>
-
           <div className="grid gap-4 lg:grid-cols-2">
-            {os.report.chapters.map((ch) => (
+            {ws.report.chapters.map((ch) => (
               <Card key={ch.id}>
                 <CardHeader>
                   <CardTitle className="text-base">{ch.title}</CardTitle>
@@ -76,13 +97,12 @@ export default function MarketingReportPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Improvisation plan</CardTitle>
-              <CardDescription>Ordered steps agencies can deliver this month</CardDescription>
+              <CardTitle>Improvisation — Fix / Publish / Promote / Measure</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {os.report.improvisation.map((step) => (
+              {ws.report.improvisation.map((step) => (
                 <div key={step.id} className="rounded-lg border p-3">
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Badge variant="outline">{step.bucket}</Badge>
                     <Badge variant="secondary">{step.effortHours}h</Badge>
                     {step.packType ? <Badge>{step.packType}</Badge> : null}
@@ -96,25 +116,19 @@ export default function MarketingReportPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>GEO depth (Phase 3)</CardTitle>
+              <CardTitle>GEO depth</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
-              <div>
-                <p className="mb-2 text-sm font-medium">Why not cited</p>
-                <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                  {os.geoDepth.whyNotCited.map((x) => (
-                    <li key={x}>{x}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <p className="mb-2 text-sm font-medium">Answer gaps</p>
-                <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                  {os.geoDepth.answerGaps.map((x) => (
-                    <li key={x}>{x}</li>
-                  ))}
-                </ul>
-              </div>
+              <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                {ws.geoDepth.whyNotCited.map((x) => (
+                  <li key={x}>{x}</li>
+                ))}
+              </ul>
+              <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                {ws.geoDepth.answerGaps.map((x) => (
+                  <li key={x}>{x}</li>
+                ))}
+              </ul>
             </CardContent>
           </Card>
         </>

@@ -7,42 +7,56 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLiveAnalyze } from "@/lib/client/live-project";
-import type { MarketingOSSnapshot, OutreachTarget } from "@/lib/marketing/types";
+import type { MarketingWorkspace } from "@/lib/marketing/workspace";
+import type { OutreachTarget } from "@/lib/marketing/types";
+
+const NEXT: Record<OutreachTarget["status"], OutreachTarget["status"]> = {
+  todo: "pitched",
+  pitched: "follow-up",
+  "follow-up": "won",
+  won: "won",
+  lost: "lost",
+};
 
 export default function MarketingOutreachPage() {
   const { result, ready } = useLiveAnalyze();
-  const [os, setOs] = useState<MarketingOSSnapshot | null>(null);
-  const [targets, setTargets] = useState<OutreachTarget[]>([]);
+  const [ws, setWs] = useState<MarketingWorkspace | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!ready) return;
-    void fetch("/api/marketing/os", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ domain: result?.project.domain, useDemo: !result }),
-    })
-      .then((r) => r.json())
+    const domain = result?.project.domain ?? "northstar.example";
+    void fetch(`/api/marketing/workspace?domain=${encodeURIComponent(domain)}`)
+      .then((r) => (r.status === 404 ? null : r.json()))
       .then((d) => {
-        setOs(d.os ?? null);
-        setTargets(d.os?.outreach ?? []);
+        if (d?.workspace) setWs(d.workspace);
       });
   }, [ready, result?.project.domain]);
 
   async function advance(t: OutreachTarget) {
-    const order = ["todo", "pitched", "follow-up", "won"] as const;
-    const idx = order.indexOf(t.status as (typeof order)[number]);
-    const next = order[Math.min(order.length - 1, idx + 1)] ?? "pitched";
-    setTargets((prev) => prev.map((x) => (x.id === t.id ? { ...x, status: next } : x)));
-    await fetch("/api/marketing/state", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        kind: "outreach",
-        id: t.id,
-        status: next,
-        domain: os?.report.domain ?? "default",
-      }),
-    });
+    if (!ws) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/marketing/workspace", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          action: "outreach_status",
+          domain: ws.domain,
+          targetId: t.id,
+          status: NEXT[t.status],
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Update failed");
+      setWs(data.workspace);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Update failed");
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (!ready) return null;
@@ -50,8 +64,8 @@ export default function MarketingOutreachPage() {
   return (
     <>
       <PageHeader
-        title="Distribution desk"
-        description="Phase 2 — Citation outreach CRM, weekly growth pack, experiment hooks, outcome learning."
+        title="Outreach + Weekly desk"
+        description="Statuses persist. Weekly pack HTML is generated with the workspace."
         action={
           <Button asChild variant="outline">
             <Link href="/demo/marketing">Back</Link>
@@ -59,34 +73,66 @@ export default function MarketingOutreachPage() {
         }
       />
 
-      {os && (
+      {error && <p className="text-sm text-destructive">{error}</p>}
+
+      {!ws && (
+        <Card>
+          <CardHeader>
+            <CardTitle>No workspace</CardTitle>
+            <CardDescription>Generate from Marketing OS first.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+              <Link href="/demo/marketing">Generate</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {ws && (
         <>
           <Card>
             <CardHeader>
               <CardTitle>Weekly Growth Pack</CardTitle>
-              <CardDescription>{os.weekly.weekOf} · {os.weekly.positionDelta}</CardDescription>
+              <CardDescription>
+                {ws.weekly.weekOf} · {ws.weekly.positionDelta}
+              </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-3">
-              <div>
-                <p className="text-sm font-medium">Summary</p>
-                <p className="text-sm text-muted-foreground">{os.weekly.summary}</p>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">{ws.weekly.summary}</p>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <p className="text-sm font-medium">Wins</p>
+                  <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                    {ws.weekly.wins.map((w) => (
+                      <li key={w}>{w}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Risks</p>
+                  <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                    {ws.weekly.risks.map((w) => (
+                      <li key={w}>{w}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Next</p>
+                  <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                    {ws.weekly.nextActions.map((w) => (
+                      <li key={w}>{w}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium">Wins</p>
-                <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                  {os.weekly.wins.map((w) => (
-                    <li key={w}>{w}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <p className="text-sm font-medium">Next</p>
-                <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                  {os.weekly.nextActions.map((w) => (
-                    <li key={w}>{w}</li>
-                  ))}
-                </ul>
-              </div>
+              {ws.weeklyHtmlUrl ? (
+                <Button asChild>
+                  <a href={ws.weeklyHtmlUrl} target="_blank" rel="noreferrer">
+                    Open weekly HTML
+                  </a>
+                </Button>
+              ) : null}
             </CardContent>
           </Card>
 
@@ -94,10 +140,10 @@ export default function MarketingOutreachPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Citation outreach CRM</CardTitle>
-                <CardDescription>Approve-to-send copy only — no silent spam</CardDescription>
+                <CardDescription>Advance status — saved on server</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {targets.map((t) => (
+                {ws.outreach.map((t) => (
                   <div key={t.id} className="rounded-lg border p-3">
                     <div className="flex flex-wrap gap-2">
                       <Badge variant="outline">{t.class}</Badge>
@@ -106,8 +152,8 @@ export default function MarketingOutreachPage() {
                     <p className="mt-2 font-medium">{t.domain}</p>
                     <p className="text-sm text-muted-foreground">{t.why}</p>
                     {t.pitch && <p className="mt-2 text-xs text-muted-foreground">Pitch: {t.pitch}</p>}
-                    <Button size="sm" className="mt-2" variant="outline" onClick={() => advance(t)}>
-                      Advance status
+                    <Button size="sm" className="mt-2" variant="outline" disabled={busy || t.status === "won"} onClick={() => advance(t)}>
+                      Advance → {NEXT[t.status]}
                     </Button>
                   </div>
                 ))}
@@ -117,20 +163,18 @@ export default function MarketingOutreachPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Learning + simulations</CardTitle>
-                <CardDescription>Phase 2/5 — priors and directional lift bands</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {os.learning.map((l) => (
-                  <div key={l.tacticId} className="flex items-center justify-between gap-2 border-b py-2 text-sm last:border-0">
+              <CardContent className="space-y-2">
+                {ws.learning.map((l) => (
+                  <div key={l.tacticId} className="flex justify-between text-sm">
                     <span>{l.tacticId}</span>
                     <Badge variant="secondary">{l.score}</Badge>
                   </div>
                 ))}
                 <div className="pt-2">
-                  <p className="mb-2 text-sm font-medium">Simulations</p>
-                  {os.simulations.slice(0, 4).map((s) => (
+                  {ws.simulations.slice(0, 5).map((s) => (
                     <p key={s.tacticId} className="text-sm text-muted-foreground">
-                      {s.tacticId}: {s.expectedLeadLiftBand} ({s.confidence}) · {s.costHours}h
+                      {s.tacticId}: {s.expectedLeadLiftBand} ({s.confidence})
                     </p>
                   ))}
                 </div>

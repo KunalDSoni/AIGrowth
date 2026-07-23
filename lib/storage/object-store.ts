@@ -21,17 +21,18 @@ export class FileObjectStore implements ObjectStore {
 
   async put(input: { key?: string; body: string | Buffer; contentType: string }): Promise<StoredObject> {
     await mkdir(this.dir, { recursive: true });
-    const id = input.key?.replace(/[^a-zA-Z0-9._-]/g, "_") || randomUUID();
     const ext = input.contentType.includes("pdf") ? "pdf" : input.contentType.includes("html") ? "html" : "bin";
-    const filename = id.includes(".") ? id : `${id}.${ext}`;
+    const rawKey = (input.key ?? randomUUID()).replace(/[^a-zA-Z0-9._-]/g, "_");
+    const base = rawKey.replace(/\.(html|pdf|bin|json)$/i, "");
+    const filename = `${base}.${ext}`;
     const abs = join(this.dir, filename);
     const body = typeof input.body === "string" ? Buffer.from(input.body, "utf8") : input.body;
     await writeFile(abs, body);
     const meta: StoredObject = {
-      id: filename.replace(/\.[^.]+$/, ""),
+      id: base,
       key: filename,
       contentType: input.contentType,
-      url: `/api/reports/${filename.replace(/\.[^.]+$/, "")}`,
+      url: `/api/reports/${base}`,
       bytes: body.byteLength,
       createdAt: new Date().toISOString(),
     };

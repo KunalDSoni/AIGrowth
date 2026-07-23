@@ -7,30 +7,51 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLiveAnalyze } from "@/lib/client/live-project";
-import type { MarketingOSSnapshot } from "@/lib/marketing/types";
+import type { MarketingWorkspace } from "@/lib/marketing/workspace";
 
 export default function MarketingAgencyPage() {
   const { result, ready } = useLiveAnalyze();
-  const [os, setOs] = useState<MarketingOSSnapshot | null>(null);
+  const [ws, setWs] = useState<MarketingWorkspace | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!ready) return;
-    void fetch("/api/marketing/os", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ domain: result?.project.domain, useDemo: !result }),
-    })
-      .then((r) => r.json())
-      .then((d) => setOs(d.os ?? null));
+    const domain = result?.project.domain ?? "northstar.example";
+    void fetch(`/api/marketing/workspace?domain=${encodeURIComponent(domain)}`)
+      .then((r) => (r.status === 404 ? null : r.json()))
+      .then((d) => {
+        if (d?.workspace) setWs(d.workspace);
+      });
   }, [ready, result?.project.domain]);
+
+  async function approvePlan() {
+    if (!ws) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/marketing/workspace", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "approve_plan", domain: ws.domain }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Approve failed");
+      setWs(data.workspace);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Approve failed");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   if (!ready) return null;
 
   return (
     <>
       <PageHeader
-        title="Agency suite & Marketing Pods"
-        description="Phases 3–5 — multi-client command center, connectors, autonomous pods under approval."
+        title="Agency suite & Pods"
+        description="Approve plan to unlock pod status. Connectors show real config state."
         action={
           <Button asChild variant="outline">
             <Link href="/demo/marketing">Back</Link>
@@ -38,17 +59,33 @@ export default function MarketingAgencyPage() {
         }
       />
 
-      {os && (
+      {error && <p className="text-sm text-destructive">{error}</p>}
+
+      {!ws && (
+        <Card>
+          <CardHeader>
+            <CardTitle>No workspace</CardTitle>
+            <CardDescription>Generate from Marketing OS first.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+              <Link href="/demo/marketing">Generate</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {ws && (
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Multi-client command center</CardTitle>
-              <CardDescription>White-label ready portfolio view</CardDescription>
+              <CardTitle>Clients</CardTitle>
+              <CardDescription>Command center</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3 md:grid-cols-3">
-              {os.agencyClients.map((c) => (
+              {ws.agencyClients.map((c) => (
                 <div key={c.id} className="rounded-lg border p-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex justify-between">
                     <p className="font-medium">{c.name}</p>
                     <Badge variant="secondary">{c.score}</Badge>
                   </div>
@@ -64,17 +101,16 @@ export default function MarketingAgencyPage() {
           <div className="grid gap-4 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Connectors (Phase 4)</CardTitle>
-                <CardDescription>Truth adapters + CMS ship-with-approval stubs</CardDescription>
+                <CardTitle>Connectors</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {os.connectors.map((c) => (
-                  <div key={c.id} className="flex items-start justify-between gap-2 border-b py-2 last:border-0">
+                {ws.connectors.map((c) => (
+                  <div key={c.id} className="flex justify-between gap-2 border-b py-2 last:border-0">
                     <div>
                       <p className="text-sm font-medium">{c.label}</p>
                       <p className="text-xs text-muted-foreground">{c.detail}</p>
                     </div>
-                    <Badge variant={c.status === "connected" ? "secondary" : "outline"}>{c.status}</Badge>
+                    <Badge variant="outline">{c.status}</Badge>
                   </div>
                 ))}
               </CardContent>
@@ -82,50 +118,26 @@ export default function MarketingAgencyPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Marketing Pods (Phase 5)</CardTitle>
-                <CardDescription>Continuous loops — humans approve strategy & packs</CardDescription>
+                <CardTitle>Marketing Pods</CardTitle>
+                <CardDescription>Approve plan to move pod out of awaiting-approval</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {os.pods.map((pod) => (
+                {ws.pods.map((pod) => (
                   <div key={pod.id} className="rounded-lg border p-3">
-                    <div className="flex flex-wrap gap-2">
-                      <Badge>{pod.status}</Badge>
-                      <Badge variant="outline">{pod.id}</Badge>
-                    </div>
-                    <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                    <Badge className="mb-2">{pod.status}</Badge>
+                    <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
                       {pod.loopNotes.map((n) => (
                         <li key={n}>{n}</li>
                       ))}
                     </ul>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Next loop: {pod.nextLoopAt ? new Date(pod.nextLoopAt).toLocaleString() : "—"}
-                    </p>
                   </div>
                 ))}
+                <Button disabled={busy || ws.approvals.planApproved} onClick={approvePlan}>
+                  {ws.approvals.planApproved ? "Plan already approved" : "Approve plan (unlock pod)"}
+                </Button>
               </CardContent>
             </Card>
           </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Proposal generator</CardTitle>
-              <CardDescription>90-day retainer scope from Position Report</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <p>
-                Scope for <span className="font-medium text-foreground">{os.report.brand}</span>: deliver weekly
-                Position diffs, 2 campaign packs/month, citation outreach, and CRO experiments on approved arms.
-              </p>
-              <p>Top improvisation commitments:</p>
-              <ul className="list-disc pl-5">
-                {os.report.improvisation.slice(0, 4).map((s) => (
-                  <li key={s.id}>
-                    {s.bucket}: {s.title} (~{s.effortHours}h)
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
         </>
       )}
     </>
