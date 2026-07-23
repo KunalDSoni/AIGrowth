@@ -41,7 +41,8 @@ describe("aggregateSite", () => {
     );
     expect(summary.totalIssues).toBe(3);
     expect(summary.high).toBe(1);
-    expect(summary.quickWins).toBe(2); // two monitors
+    expect(summary.quickWins).toBe(0); // no quick-win issues here
+    expect(summary.monitors).toBe(2); // two monitors, counted separately
   });
 
   it("ranks worst pages first and surfaces top issues", () => {

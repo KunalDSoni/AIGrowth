@@ -40,8 +40,9 @@ describe("computeReadiness", () => {
     expect(m.total).toBe(20);
   });
 
-  it("counts monitor issues as quick wins", () => {
+  it("does not count monitors as quick wins", () => {
     const m = computeReadiness([issue("monitor"), issue("monitor"), issue("quick-win")]);
-    expect(m.quickWins).toBe(3);
+    expect(m.quickWins).toBe(1);
+    expect(m.monitor).toBe(2);
   });
 });
