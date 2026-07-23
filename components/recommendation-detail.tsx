@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, Check, CircleCheck, Clock3, Gauge } from "lucide-react";
 import type { Recommendation } from "@/lib/domain/types";
 import { GenerationWorkspace } from "./generation-workspace";
+import { EvidenceDrawer } from "./evidence-drawer";
 import { useEffect, useState } from "react";
 import { track } from "@/lib/analytics/client";
 import { evidenceReferences } from "@/lib/data/demo";
@@ -58,7 +59,7 @@ export function RecommendationDetail({ item }: { item: Recommendation }) {
       </div>
     </section>
     <section className="surface evidence-panel">
-      <div className="panel-heading"><div><span className="eyebrow">Evidence provenance</span><h2>Sources behind the action</h2></div><span className="pill">{evidence.length} references</span></div>
+      <div className="panel-heading"><div><span className="eyebrow">Evidence provenance</span><h2>Sources behind the action</h2></div><EvidenceDrawer references={evidence} affectedAssets={[item.assetType]} /></div>
       {evidence.length ? <div className="evidence-list">{evidence.map((reference) => <article key={reference.id} className="evidence-item">
         <div><b>{reference.summary}</b><p className="muted">{reference.source} | {reference.kind.replaceAll("_", " ").toLowerCase()} | reliability {reference.reliability.toLowerCase()}</p></div>
         <div className="evidence-flags"><span>{reference.isSimulated ? "Simulated" : "Observed"}</span><span>{reference.isEstimated ? "Estimated" : "Direct"}</span></div>
