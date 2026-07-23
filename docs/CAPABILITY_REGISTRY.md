@@ -73,6 +73,7 @@ sync with `lib/engines/*` and the demo dataset, not aspirations.
 |---|---|---|---|
 | Competitor type/coverage model | COMP-001 | COMPLETE | `lib/engines/competitor-intelligence.ts` |
 | Competitor prompt/citation gap analysis | COMP-002 | COMPLETE | `lib/engines/competitor-intelligence.ts` |
+| Live competitor homepage crawl compare | COMP-001 | COMPLETE | `lib/engines/competitor-crawl.ts`, `app/api/competitors` |
 
 ## Recommendation Intelligence
 

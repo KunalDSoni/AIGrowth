@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { EmptyLiveState } from "@/components/empty-live-state";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { writeLiveAnalyze, useLiveAnalyze } from "@/lib/client/live-project";
 import type { AnalyzeResult } from "@/lib/analyze/types";
+import type { CompetitorComparison } from "@/lib/engines/competitor-crawl";
 import type { CompetitorType } from "@/lib/engines/competitor-intelligence";
 
 const TYPES: CompetitorType[] = ["business", "organic", "local", "ai-answer", "citation"];
@@ -15,6 +17,26 @@ const TYPES: CompetitorType[] = ["business", "organic", "local", "ai-answer", "c
 export default function CompetitorsPage() {
   const { result, ready, hasLive, setResult } = useLiveAnalyze();
   const [busy, setBusy] = useState(false);
+  const [crawlBusy, setCrawlBusy] = useState(false);
+  const [competitorUrl, setCompetitorUrl] = useState("");
+  const [crawlError, setCrawlError] = useState<string | null>(null);
+  const [comparisons, setComparisons] = useState<CompetitorComparison[]>([]);
+
+  useEffect(() => {
+    if (!result?.project.domain) return;
+    let cancelled = false;
+    fetch(`/api/competitors?domain=${encodeURIComponent(result.project.domain)}`)
+      .then((r) => r.json())
+      .then((data: { comparisons?: CompetitorComparison[] }) => {
+        if (!cancelled) setComparisons(data.comparisons ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setComparisons([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [result?.project.domain]);
 
   if (!ready) return null;
   if (!hasLive || !result) {
@@ -48,13 +70,81 @@ export default function CompetitorsPage() {
     }
   }
 
+  async function crawlCompetitor() {
+    setCrawlBusy(true);
+    setCrawlError(null);
+    try {
+      const response = await fetch("/api/competitors", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ domain: result!.project.domain, competitorUrl }),
+      });
+      const data = (await response.json()) as {
+        error?: string;
+        comparisons?: CompetitorComparison[];
+      };
+      if (!response.ok) {
+        setCrawlError(data.error ?? "Competitor crawl failed");
+        return;
+      }
+      setComparisons(data.comparisons ?? []);
+      setCompetitorUrl("");
+    } catch {
+      setCrawlError("Could not reach competitor crawl API");
+    } finally {
+      setCrawlBusy(false);
+    }
+  }
+
   return (
     <>
       <PageHeader
         title={`Competitors · ${result.project.brandGuess}`}
-        description="Citation competitors from live Gemini answers. Correct type without mixing categories."
+        description="Citation competitors from live Gemini answers, plus optional safe homepage crawl comparison."
         action={<Badge variant="secondary">{competitors.length} domains</Badge>}
       />
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Live competitor homepage crawl</CardTitle>
+          <CardDescription>
+            Safely crawl a public competitor URL and compare readiness, proof, CTA, and structured data against your last analyze.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              value={competitorUrl}
+              onChange={(e) => setCompetitorUrl(e.target.value)}
+              placeholder="https://competitor.example"
+              disabled={crawlBusy}
+            />
+            <Button onClick={crawlCompetitor} disabled={crawlBusy || !competitorUrl.trim()}>
+              {crawlBusy ? "Crawling…" : "Compare"}
+            </Button>
+          </div>
+          {crawlError && <p className="text-sm text-destructive">{crawlError}</p>}
+          {comparisons.length > 0 && (
+            <div className="space-y-3">
+              {comparisons.map((c) => (
+                <div key={`${c.competitor.domain}-${c.competitor.crawledAt}`} className="rounded-lg border p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{c.competitor.domain}</span>
+                    <Badge variant="outline">score {c.competitor.score}</Badge>
+                    <Badge variant="secondary">you {c.ours.score}</Badge>
+                    <Badge variant="outline">Δ {c.deltas.score}</Badge>
+                  </div>
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                    {c.conclusions.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {citations && (
         <div className="grid gap-4 sm:grid-cols-3">

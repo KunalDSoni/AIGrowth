@@ -10,6 +10,7 @@ Adapters validate and normalize upstream responses, declare their source, time o
 - `AuditProvider`: returns normalized issues.
 - `SearchOpportunityProvider` (`lib/providers/search.ts`): `DemoSearchProvider`, live `SearchConsoleAdapter` (`GSC_SITE_URL` + `GSC_ACCESS_TOKEN`), and HTTP `KeywordProviderAdapter` (`KEYWORD_PROVIDER_URL`, optional `KEYWORD_PROVIDER_API_KEY`). `getSearchOpportunityProvider()` selects via `OPENGROWTH_SEARCH_PROVIDER=auto|demo|search-console|keyword-provider`.
 - `KeywordProvider` and `SearchDataProvider` (contracts): return sourced, market-aware search signals.
+- Competitor homepage crawl: `POST /api/competitors` safely crawls a public competitor URL (same SSRF guards) and compares readiness/proof/CTA/schema against the latest analyze snapshot.
 - `CompetitorProvider`: returns directional comparisons with unavailable fields explicit.
 - `AITextProvider`: returns structured, review-required assets.
 - `AnalyticsProvider`: receives the fixed product event vocabulary.
