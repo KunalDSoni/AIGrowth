@@ -13,6 +13,8 @@ import { auditAiAccess } from "@/lib/engines/ai-access";
 import { buildContentInventory, detectRefreshCandidates } from "@/lib/engines/content-inventory";
 import { demoDemandSignals } from "@/lib/providers/search";
 import { buildDemandProxy, type PromptOpportunity } from "@/lib/engines/demand-proxy";
+import { buildBusinessGraph } from "@/lib/engines/business-graph";
+import { detectCompetitorGaps, normalizeCompetitor } from "@/lib/engines/competitor-intelligence";
 
 export const project = {
   id: "northstar",
@@ -343,4 +345,23 @@ export const contentRefreshCandidates = detectRefreshCandidates(contentInventory
 export const promptOpportunities: PromptOpportunity[] = buildDemandProxy({
   signals: demoDemandSignals({ services: businessProfile.services, audiences: businessProfile.audienceSegments, market: businessProfile.market }),
   business: businessProfile,
+});
+
+// BIZ-001/002 — the business knowledge graph seed for the review workflow.
+export const businessGraph = buildBusinessGraph({
+  business: businessProfile,
+  pages: websitePages,
+  competitors: ["LedgerWise", "ClearBooks AU"],
+  profileEvidenceId: "ev-business-profile",
+});
+
+// COMP-001/002 — normalized competitor records and sample-size-gated gaps.
+export const competitorRecords = [
+  normalizeCompetitor({ name: "LedgerWise", type: "ai-answer", source: "AI visibility observations", confidence: 62 }),
+  normalizeCompetitor({ name: "ClearBooks AU", type: "organic", source: "Mock SERP provider", confidence: 58 }),
+];
+export const competitorGaps = detectCompetitorGaps({
+  observations: aiVisibilityObservations,
+  competitors: ["LedgerWise", "ClearBooks AU"],
+  firstPartyDomain: "northstaraccounting.com.au",
 });
