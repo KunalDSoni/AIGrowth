@@ -56,27 +56,32 @@ const INTENT_TEMPLATES: { suffix: (service: string, market: string) => string; t
   { suffix: (s) => `${s.toLowerCase()} vs doing it in-house`, topic: (s) => `${s} comparison` },
 ];
 
+/** Synchronous, deterministic signal generation — safe to call at module scope. */
+export function demoDemandSignals(input: DiscoverInput): DemandSignal[] {
+  const signals: DemandSignal[] = [];
+  for (const service of input.services) {
+    for (const template of INTENT_TEMPLATES) {
+      const query = template.suffix(service, input.market);
+      const hash = stableHash(query);
+      signals.push({
+        query,
+        topic: template.topic(service),
+        service,
+        source: "demo",
+        isEstimated: true,
+        monthlySearches: 50 + (hash % 950),
+        competitionIndex: hash % 100,
+      });
+    }
+  }
+  return signals;
+}
+
 export class DemoSearchProvider implements SearchOpportunityProvider {
   readonly source = "demo" as const;
 
   async discover(input: DiscoverInput): Promise<DemandSignal[]> {
-    const signals: DemandSignal[] = [];
-    for (const service of input.services) {
-      for (const template of INTENT_TEMPLATES) {
-        const query = template.suffix(service, input.market);
-        const hash = stableHash(query);
-        signals.push({
-          query,
-          topic: template.topic(service),
-          service,
-          source: "demo",
-          isEstimated: true,
-          monthlySearches: 50 + (hash % 950),
-          competitionIndex: hash % 100,
-        });
-      }
-    }
-    return signals;
+    return demoDemandSignals(input);
   }
 }
 

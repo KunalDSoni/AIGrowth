@@ -8,6 +8,11 @@ import { calculateRecommendationPriority, explainRecommendationScore } from "@/l
 import { buildTechnicalAuditIssues } from "@/lib/engines/technical-audit";
 import { extractCitations } from "@/lib/engines/citation-intelligence";
 import { runObservations } from "@/lib/engines/observation-run";
+import { buildSiteInventory } from "@/lib/engines/site-inventory";
+import { auditAiAccess } from "@/lib/engines/ai-access";
+import { buildContentInventory, detectRefreshCandidates } from "@/lib/engines/content-inventory";
+import { demoDemandSignals } from "@/lib/providers/search";
+import { buildDemandProxy, type PromptOpportunity } from "@/lib/engines/demand-proxy";
 
 export const project = {
   id: "northstar",
@@ -306,4 +311,36 @@ export const latestObservationRun = runObservations({
   brand: "Northstar Accounting",
   firstPartyDomain: "northstaraccounting.com.au",
   competitors: ["LedgerWise", "ClearBooks AU"],
+});
+
+// CRAWL-002 — page-purpose inventory and service coverage gaps.
+export const siteInventory = buildSiteInventory({ pages: technicalPageObservations, business: businessProfile });
+
+// TSEO-002 — AI/search crawler accessibility findings from a demo robots setup.
+export const aiAccessFindings = auditAiAccess({
+  robotsTxt: "User-agent: *\nAllow: /\nDisallow: /drafts\nSitemap: https://northstaraccounting.com.au/sitemap.xml\n\nUser-agent: GPTBot\nDisallow: /",
+  sitemapFound: true,
+  pageRobotsDirectives: { "/cloud-accounting": "noindex" },
+});
+
+// CONTENT-001/002 — content inventory and refresh candidates for the demo pages.
+const contentTargets: Record<string, { query: string; updated: string; proof: boolean; cta: boolean }> = {
+  "/": { query: "outsourced accounting Australia", updated: "2024-02-01T00:00:00.000Z", proof: false, cta: true },
+  "/bookkeeping": { query: "bookkeeping services", updated: now, proof: false, cta: false },
+  "/payroll": { query: "payroll services", updated: now, proof: true, cta: false },
+  "/cloud-accounting": { query: "cloud accounting setup", updated: now, proof: true, cta: true },
+  "/virtual-cfo": { query: "virtual cfo services", updated: now, proof: true, cta: true },
+};
+export const contentInventory = buildContentInventory(
+  technicalPageObservations.map((observation) => {
+    const target = contentTargets[observation.url] ?? { query: observation.pageType, updated: now, proof: false, cta: false };
+    return { observation, targetQuery: target.query, purpose: observation.pageType, lastUpdated: target.updated, hasProof: target.proof, hasClearCta: target.cta };
+  }),
+);
+export const contentRefreshCandidates = detectRefreshCandidates(contentInventory);
+
+// SEARCH-001 — ranked prompt/topic opportunities from the demo demand provider.
+export const promptOpportunities: PromptOpportunity[] = buildDemandProxy({
+  signals: demoDemandSignals({ services: businessProfile.services, audiences: businessProfile.audienceSegments, market: businessProfile.market }),
+  business: businessProfile,
 });
