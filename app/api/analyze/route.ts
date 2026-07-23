@@ -3,7 +3,7 @@ import { z } from "zod";
 import { publicWebsiteSchema } from "@/lib/security/url";
 import { runSeoScan } from "@/lib/engines/run-seo-scan";
 import { runGeoProbes } from "@/lib/engines/run-geo";
-import { deriveGeoPrompts, extractServicePhrases, guessBrandFromTitle } from "@/lib/engines/prompt-derive";
+import { extractServicePhrases, guessBrandFromTitle } from "@/lib/engines/prompt-derive";
 import { GeminiNotConfiguredError, GeminiVisibilityProvider } from "@/lib/providers/gemini-visibility";
 import { buildNextActions } from "@/lib/engines/next-actions";
 import { buildLiveIntelligence } from "@/lib/engines/live-intelligence";
@@ -129,8 +129,6 @@ export async function POST(request: Request) {
       [seo.home.title ?? "", seo.home.description ?? "", ...seo.pages.slice(0, 5).map((p) => p.title ?? "")].filter(Boolean),
       3,
     );
-
-    void deriveGeoPrompts({ brandGuess, domain, services });
 
     const geo = await runGeoProbes({ brandGuess, domain, services, provider });
     const projectId = `proj-${domain}`;

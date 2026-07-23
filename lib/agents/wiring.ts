@@ -44,6 +44,7 @@ async function probe(input: { brand: string; domain: string }): Promise<Observed
     brandGuess: input.brand,
     domain: input.domain,
     services: [],
+    audiences: [],
     provider: new GeminiVisibilityProvider(),
   });
 
