@@ -1,4 +1,5 @@
 import type { AnalyzeResult } from "@/lib/analyze/types";
+import { isSignificantChange } from "@/lib/metrics/significance";
 
 /** Slim snapshot kept for outcome deltas (full HTML/GEO text lives only on latest). */
 export interface AnalyzeSnapshot {
@@ -69,6 +70,8 @@ export interface DeltaMetric {
   /** For scores/rates, up is usually better; for issues, down is better. */
   improved: boolean;
   higherIsBetter: boolean;
+  /** For sampled rates, whether the change passed a two-proportion test. Exact counts are always true. */
+  significant: boolean;
 }
 
 export interface AnalyzeDelta {
@@ -98,11 +101,13 @@ function metric(
   after: number,
   unit: string,
   higherIsBetter: boolean,
+  significant = true,
 ): DeltaMetric {
   const delta = Number((after - before).toFixed(2));
   const dir = direction(delta);
-  const improved = dir === "flat" ? false : higherIsBetter ? dir === "up" : dir === "down";
-  return { key, label, before, after, delta, unit, direction: dir, improved, higherIsBetter };
+  const baseImproved = dir === "flat" ? false : higherIsBetter ? dir === "up" : dir === "down";
+  const improved = significant && baseImproved;
+  return { key, label, before, after, delta, unit, direction: dir, improved, higherIsBetter, significant };
 }
 
 /**
@@ -110,13 +115,24 @@ function metric(
  * Does not claim causation — only directional change between runs.
  */
 export function compareAnalyzeSnapshots(baseline: AnalyzeSnapshot, current: AnalyzeSnapshot): AnalyzeDelta {
+  const bN = baseline.geo.sampleSize;
+  const cN = current.geo.sampleSize;
+  const mentionSig = isSignificantChange(
+    Math.round((baseline.geo.brandMentionRate / 100) * bN), bN,
+    Math.round((current.geo.brandMentionRate / 100) * cN), cN,
+  );
+  const citationSig = isSignificantChange(
+    Math.round((baseline.geo.firstPartyCitationShare / 100) * bN), bN,
+    Math.round((current.geo.firstPartyCitationShare / 100) * cN), cN,
+  );
+
   const metrics: DeltaMetric[] = [
     metric("seoScore", "SEO readiness", baseline.seo.score, current.seo.score, "/100", true),
     metric("pagesScanned", "Pages scanned", baseline.seo.pagesScanned, current.seo.pagesScanned, "", true),
     metric("totalIssues", "Total SEO issues", baseline.seo.totalIssues, current.seo.totalIssues, "", false),
     metric("critical", "Critical issues", baseline.seo.critical, current.seo.critical, "", false),
     metric("high", "High issues", baseline.seo.high, current.seo.high, "", false),
-    metric("brandMentionRate", "GEO brand mention rate", baseline.geo.brandMentionRate, current.geo.brandMentionRate, "%", true),
+    metric("brandMentionRate", "GEO brand mention rate", baseline.geo.brandMentionRate, current.geo.brandMentionRate, "%", true, mentionSig),
     metric(
       "firstPartyCitationShare",
       "First-party citation share",
@@ -124,6 +140,7 @@ export function compareAnalyzeSnapshots(baseline: AnalyzeSnapshot, current: Anal
       current.geo.firstPartyCitationShare,
       "%",
       true,
+      citationSig,
     ),
     metric("geoSampleSize", "GEO sample size", baseline.geo.sampleSize, current.geo.sampleSize, "", true),
   ];

@@ -142,6 +142,7 @@ describe("remaining epic engines", () => {
           direction: "down",
           improved: false,
           higherIsBetter: true,
+          significant: true,
         },
       ],
       actionsResolved: [],

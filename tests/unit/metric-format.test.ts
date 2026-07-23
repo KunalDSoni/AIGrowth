@@ -38,8 +38,9 @@ describe("isReliable and gateMessage", () => {
   });
 });
 
-describe("wilsonInterval stub", () => {
-  it("returns null until sub-project 2 implements it", () => {
-    expect(wilsonInterval(2, 5)).toBeNull();
+describe("wilsonInterval", () => {
+  it("returns null only for an empty sample", () => {
+    expect(wilsonInterval(0, 0)).toBeNull();
+    expect(wilsonInterval(2, 5)).not.toBeNull();
   });
 });

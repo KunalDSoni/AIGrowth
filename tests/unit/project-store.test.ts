@@ -92,7 +92,7 @@ describe("file project store", () => {
       geo: {
         runId: "g1",
         model: "gemini-flash-latest",
-        sampleSize: 6,
+        sampleSize: 30, // large enough that a 10% -> 40% rise is statistically significant
         brandMentionRate: 10,
         firstPartyCitationShare: 0,
         observations: [],
