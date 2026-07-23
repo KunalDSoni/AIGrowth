@@ -1,6 +1,6 @@
 import type { CampaignPack, PositionReport } from "@/lib/marketing/types";
-import { percentValue } from "@/lib/metrics/construct";
-import { formatMetric } from "@/lib/metrics/format";
+import { geoMentionMetric } from "@/lib/marketing/metrics-view";
+import { formatMetric, gateMessage, isReliable } from "@/lib/metrics/format";
 
 function esc(s: string) {
   return s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
@@ -87,7 +87,10 @@ export function renderPositionReportHtml(
     <p>${esc(report.domain)} · Generated ${esc(report.generatedAt.slice(0, 19).replace("T", " "))} UTC · Mode: ${esc(report.mode)}</p>
     <div class="grid">
       <div class="stat"><span>SEO readiness</span><strong>${report.scoreboard.seoReadiness}</strong></div>
-      <div class="stat"><span>GEO mention</span><strong>${formatMetric(percentValue(report.scoreboard.geoMentionRate, { basis: "measured", evidenceIds: [] }))}</strong></div>
+      <div class="stat"><span>GEO mention</span><strong>${(() => {
+        const m = geoMentionMetric({ brandMentionRate: report.scoreboard.geoMentionRate, sampleSize: report.scoreboard.geoSampleSize });
+        return isReliable(m) ? formatMetric(m) : gateMessage(m);
+      })()}</strong></div>
       <div class="stat"><span>GEO sample</span><strong>${report.scoreboard.geoSampleSize}</strong></div>
       <div class="stat"><span>Competition</span><strong>${esc(report.scoreboard.competitorPressure)}</strong></div>
     </div>
