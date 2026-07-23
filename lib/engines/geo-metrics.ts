@@ -4,6 +4,7 @@
 
 import type { GeoObservation, GeoResult } from "@/lib/analyze/types";
 import type { AnalyzeSnapshot } from "@/lib/engines/analyze-delta";
+import { MIN_RELIABLE, metricConfidence, wilsonInterval } from "@/lib/metrics/wilson";
 
 export type Sentiment = "positive" | "neutral" | "negative";
 
@@ -68,12 +69,17 @@ export function computeGeoVariability(
   );
   const runToRunMentionStdev = historyRates.length >= 2 ? stdev(historyRates) : null;
 
-  let confidence: GeoVariabilityMetrics["confidence"] = "Low";
-  if (sampleSize >= 8 && (runToRunMentionStdev === null || runToRunMentionStdev < 25)) confidence = "Medium";
-  if (sampleSize >= 12 && historyRates.length >= 3 && (runToRunMentionStdev ?? 99) < 15) confidence = "High";
+  const successes = Math.round((brandMentionRate / 100) * sampleSize);
+  const interval = wilsonInterval(successes, sampleSize);
+  const level = metricConfidence(interval, { n: sampleSize, minReliable: MIN_RELIABLE.geoMentionRate });
+  const confidence: GeoVariabilityMetrics["confidence"] =
+    level === "high" ? "High" : level === "medium" ? "Medium" : "Low";
 
   const labels = [
     `Sample size n=${sampleSize}`,
+    interval
+      ? `${brandMentionRate}% (95% CI ${Math.round(interval.low)}–${Math.round(interval.high)}%)`
+      : "No interval — insufficient sample",
     confidence === "Low" ? "Low confidence — treat as directional only" : `${confidence} confidence`,
   ];
   if (runToRunMentionStdev !== null) {
