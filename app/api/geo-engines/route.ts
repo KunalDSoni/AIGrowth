@@ -4,6 +4,7 @@ import { getConfiguredEngines } from "@/lib/engines/geo-engine-registry";
 import { runMultiEngineProbes } from "@/lib/engines/geo-multi-engine";
 import { buildCrossEngineLedger } from "@/lib/engines/geo-cross-engine-ledger";
 import { buildEngineTargetPlan } from "@/lib/engines/geo-engine-targets";
+import { saveEngineProbes } from "@/lib/engines/geo-engine-probe-store";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -42,6 +43,9 @@ export async function GET(request: Request) {
       brandGuess: latest.project.brandGuess,
       domain: domainKey(domain),
     });
+    // Persist the raw per-engine probes so the per-engine fix route (EP-2) can
+    // build engine-tailored fixes without re-probing.
+    saveEngineProbes(domainKey(domain), results);
     const report = buildCrossEngineLedger(results);
     return NextResponse.json({ report, targetPlan: buildEngineTargetPlan(report) });
   } catch (error) {
