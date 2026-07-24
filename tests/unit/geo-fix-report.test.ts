@@ -23,6 +23,33 @@ function crawler(html: string): CitedSourceCrawler {
   };
 }
 
+describe("buildGeoFixReport engine targeting (FD-1)", () => {
+  it("targets a supplied engine GeoResult and tags the report with the engine", async () => {
+    const result = answered(makeAnalyzeResult({ domain: "e.invalid", geoSampleSize: 4 }));
+    // A separate engine's probe results where a different competitor beats the brand.
+    const engineGeo = {
+      ...result.geo,
+      observations: result.geo.observations.map((o, i) => ({
+        ...o,
+        id: `openai-${i}`,
+        rawResponse: "answer",
+        brandMentioned: false,
+        citations: [{ url: "https://chatgpt-rival.example/x", domain: "chatgpt-rival.example", classification: "other" as const }],
+      })),
+    };
+    const report = await buildGeoFixReport(result, { geo: engineGeo, engine: "openai" });
+    expect(report.engine).toBe("openai");
+    expect(report.competitorsBeatingYou[0].domain).toBe("chatgpt-rival.example");
+  });
+
+  it("defaults to result.geo and leaves engine undefined when not supplied", async () => {
+    const result = answered(makeAnalyzeResult({ domain: "e2.invalid", geoSampleSize: 4, citedDomains: ["rival.example"] }));
+    const report = await buildGeoFixReport(result);
+    expect(report.engine).toBeUndefined();
+    expect(report.competitorsBeatingYou[0].domain).toBe("rival.example");
+  });
+});
+
 describe("buildGeoFixReport", () => {
   it("returns offline diagnosis (no fixes) without a crawler", async () => {
     const result = answered(makeAnalyzeResult({ domain: "a.invalid", geoSampleSize: 4, citedDomains: ["rival.example"] }));

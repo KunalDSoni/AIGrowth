@@ -11,7 +11,7 @@
  * report honestly returns diagnosis-only.
  */
 
-import type { AnalyzeResult } from "@/lib/analyze/types";
+import type { AnalyzeResult, GeoResult } from "@/lib/analyze/types";
 import type { PromptCitationStatus } from "@/lib/analyze/types";
 import { buildCitationLedger } from "@/lib/engines/geo-citation-ledger";
 import {
@@ -27,6 +27,8 @@ import type { FixTypeId } from "@/lib/engines/geo-fix-taxonomy";
 export interface GeoFixReport {
   domain: string;
   brand: string;
+  /** The answer engine this report targets (e.g. "openai"); omitted for the default single-engine run. */
+  engine?: string;
   sampleSize: number;
   reliable: boolean;
   coverage: { cited: number; mentionedNotCited: number; absent: number; unanswered: number };
@@ -43,6 +45,10 @@ export interface BuildGeoFixReportOptions {
   limit?: number;
   /** Learned per-fix-type weights (OPS-5) blended into recommendation ranking. */
   weights?: Record<FixTypeId, number>;
+  /** Target a specific engine's probe results (FD-1); defaults to result.geo. */
+  geo?: GeoResult;
+  /** Engine label tagged onto the report (e.g. "openai"). */
+  engine?: string;
 }
 
 export async function buildGeoFixReport(
@@ -50,7 +56,7 @@ export async function buildGeoFixReport(
   opts: BuildGeoFixReportOptions = {},
 ): Promise<GeoFixReport> {
   const evidenceIds = (result.evidence ?? []).map((e) => e.id).slice(0, 6);
-  const ledger = buildCitationLedger(result.geo, { evidenceIds });
+  const ledger = buildCitationLedger(opts.geo ?? result.geo, { evidenceIds });
 
   const absentPrompts = ledger.records
     .filter((r) => r.status === "absent" || r.status === "mentioned-not-cited")
@@ -59,6 +65,7 @@ export async function buildGeoFixReport(
   const base = {
     domain: result.project.domain,
     brand: result.project.brandGuess,
+    engine: opts.engine,
     sampleSize: ledger.sampleSize,
     reliable: ledger.reliable,
     coverage: ledger.coverage,
