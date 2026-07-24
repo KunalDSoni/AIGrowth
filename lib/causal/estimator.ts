@@ -41,4 +41,32 @@ export function diffInDiff(
   };
 }
 
+/** Synthetic-control counterfactual for when no clean experiment is feasible. */
+export function syntheticControl(
+  treat: OutcomeSeries,
+  control: OutcomeSeries,
+  startedAt: string,
+): LiftResult {
+  const t = splitAround(treat, startedAt);
+  const c = splitAround(control, startedAt);
+  const scale = mean(t.pre) / mean(c.pre);
+  const counterPost = c.post.map((p) => p.value * scale);
+  const cfMean = counterPost.reduce((s, v) => s + v, 0) / Math.max(counterPost.length, 1);
+  const actual = mean(t.post);
+  const liftPct = ((actual - cfMean) / cfMean) * 100;
+
+  const preResiduals = t.pre.map((p, i) => p.value - (c.pre[i]?.value ?? mean(c.pre)) * scale);
+  const marginPct =
+    ((1.96 * (stdev(preResiduals) / Math.sqrt(Math.max(t.post.length, 1)))) / cfMean) * 100;
+
+  return {
+    liftPct: round1(liftPct),
+    interval: { low: round1(liftPct - marginPct), high: round1(liftPct + marginPct) },
+    label: "directional_modeled",
+    method: "synthetic_control",
+    basis: "estimated",
+    note: "Modeled counterfactual from control (no clean experiment feasible).",
+  };
+}
+
 export { stdev, round1 };
