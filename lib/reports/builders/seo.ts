@@ -25,14 +25,23 @@ export function buildSeoReport(spine: AnalysisSpine): ReportModel {
     };
   }
 
+  // On the insufficient path the crawl returned no pages, so the readiness
+  // score is a real-but-meaningless number. Suppressing it (rather than
+  // showing "Readiness 72" beside "Pages scanned 0") upholds the no-fake-scores
+  // rule; the honest counts still render.
+  const insufficient = spine.seo.status === "insufficient";
   const blocks: ReportBlock[] = [];
-  if (spine.seo.status === "insufficient") {
+  if (insufficient) {
     blocks.push({ kind: "insufficient", reason: "Crawl returned no pages — findings below are directional only." });
   }
   blocks.push({
     kind: "kpis",
     items: [
-      { label: "Readiness", value: String(seo.site.score), hint: seo.site.band },
+      {
+        label: "Readiness",
+        value: insufficient ? "—" : String(seo.site.score),
+        hint: insufficient ? "insufficient data" : seo.site.band,
+      },
       { label: "Pages scanned", value: String(seo.site.pagesScanned) },
       { label: "Critical / High", value: `${seo.site.critical} / ${seo.site.high}` },
       { label: "Total issues", value: String(seo.site.totalIssues) },

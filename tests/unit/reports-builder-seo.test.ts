@@ -43,4 +43,17 @@ describe("buildSeoReport", () => {
     expect(kinds).toContain("kpis");
     expect(kinds).toContain("table");
   });
+  it("suppresses the readiness score (no fake score) on the insufficient path", () => {
+    const model = buildSeoReport(assembleSpineFrom("acme.com", analyze(0), null));
+    const kpis = model.sections.flatMap((s) => s.blocks).find((b) => b.kind === "kpis");
+    expect(kpis).toBeDefined();
+    if (kpis?.kind === "kpis") {
+      const readiness = kpis.items.find((i) => i.label === "Readiness");
+      expect(readiness?.value).toBe("—");
+      expect(readiness?.value).not.toBe("72");
+      expect(readiness?.hint).toBe("insufficient data");
+      // Honest counts still render.
+      expect(kpis.items.find((i) => i.label === "Pages scanned")?.value).toBe("0");
+    }
+  });
 });
