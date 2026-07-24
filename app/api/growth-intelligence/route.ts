@@ -2,8 +2,23 @@ import { NextResponse } from "next/server";
 import { domainKey, getProjectStore } from "@/lib/projects/store";
 import { buildLiveIntelligence } from "@/lib/engines/live-intelligence";
 import { buildGrowthIntelligenceReport } from "@/lib/engines/growth-intelligence-compose";
+import { getAnswerEngineProvider } from "@/lib/providers/answer-engine";
+import { measureGeo, type GeoMeasurement } from "@/lib/ingestion/geo-measurement";
+import type { AnalyzeResult } from "@/lib/analyze/types";
 
 export const runtime = "nodejs";
+
+/**
+ * Measure GEO against a real answer engine only when one is configured. Default
+ * (no env) stays offline: GEO remains the honest simulated LLM-probe signal and
+ * no network call is made from the demo.
+ */
+async function maybeMeasureGeo(result: AnalyzeResult): Promise<GeoMeasurement | undefined> {
+  if (!process.env.OPENGROWTH_ANSWER_ENGINE) return undefined;
+  const prompts = result.geo.observations.map((observation) => observation.prompt);
+  if (prompts.length === 0) return undefined;
+  return measureGeo(getAnswerEngineProvider(), prompts, { brand: result.project.brandGuess });
+}
 
 /**
  * GIP — unified Growth Intelligence report for a scanned domain.
@@ -32,7 +47,8 @@ export async function GET(request: Request) {
     const result = latest.intelligence
       ? latest
       : { ...latest, intelligence: buildLiveIntelligence(latest) };
-    return NextResponse.json({ report: buildGrowthIntelligenceReport(result) });
+    const measuredGeo = await maybeMeasureGeo(result);
+    return NextResponse.json({ report: buildGrowthIntelligenceReport(result, { measuredGeo }) });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to build report";
     return NextResponse.json({ error: message, report: null }, { status: 500 });

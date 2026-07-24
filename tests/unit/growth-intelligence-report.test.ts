@@ -13,7 +13,37 @@ import type {
 } from "@/lib/domain/types";
 import type { RankedCandidate } from "@/lib/engines/recommendation-bus";
 import type { LiveIntelligence } from "@/lib/engines/live-intelligence";
+import type { PromptOpportunity } from "@/lib/engines/demand-proxy";
+import type { BusinessProfileSnapshot } from "@/lib/domain/types";
 import { makeAnalyzeResult } from "../support/analyze-input";
+
+const profile: BusinessProfileSnapshot = {
+  id: "biz-1",
+  name: "Acme",
+  market: "Australia",
+  industry: "Bookkeeping",
+  goal: "Generate qualified leads",
+  audienceSegments: ["Clinic owners"],
+  services: ["bookkeeping"],
+  differentiators: [],
+  tone: "Clear",
+};
+
+function searchOpportunity(id: string): PromptOpportunity {
+  return {
+    id,
+    query: `best bookkeeping for clinics ${id}`,
+    topic: "bookkeeping",
+    service: "tax advisory",
+    intent: "commercial",
+    funnelStage: "decision",
+    demandProxy: 60,
+    businessRelevance: 78,
+    source: "crawl-derived",
+    isEstimated: true,
+    labels: ["crawl-derived estimate"],
+  };
+}
 
 function scoreComponents(
   overrides: Partial<RecommendationScoreComponents> = {},
@@ -151,6 +181,26 @@ describe("toAggregatorInputs", () => {
     const result = { ...base, geo: { ...base.geo, observations: [] } };
     expect(toAggregatorInputs(result).aiVisibility).toEqual([]);
   });
+
+  it("derives content opportunities from live search opportunities", () => {
+    const base = makeAnalyzeResult();
+    const result = {
+      ...base,
+      intelligence: {
+        profile,
+        searchOpportunities: [searchOpportunity("o1"), searchOpportunity("o2")],
+      } as unknown as LiveIntelligence,
+    };
+
+    const inputs = toAggregatorInputs(result);
+
+    expect(inputs.opportunities.length).toBeGreaterThan(0);
+    expect(inputs.opportunities[0].relevance).toBe(78);
+  });
+
+  it("leaves opportunities empty when there is no live intelligence", () => {
+    expect(toAggregatorInputs(makeAnalyzeResult()).opportunities).toEqual([]);
+  });
 });
 
 describe("buildPillarSnapshot", () => {
@@ -222,5 +272,28 @@ describe("buildGrowthIntelligenceReport", () => {
     expect(report.pillars.every((p) => p.signalCount === 0)).toBe(true);
     expect(report.guardrails.length).toBeGreaterThan(0); // guardrails always present
     expect(report.labels.length).toBeGreaterThan(0); // insufficiency stated
+  });
+
+  it("marks GEO simulated by default and says so", () => {
+    const report = buildGrowthIntelligenceReport(makeAnalyzeResult({ geoSampleSize: 2 }));
+    expect(report.geoMeasurement).toBe("simulated");
+    expect(report.labels.some((label) => /simulated/i.test(label))).toBe(true);
+  });
+
+  it("marks GEO measured when a measured answer-engine run is supplied", () => {
+    const measured = {
+      brand: "Acme",
+      observations: [],
+      sampleSize: 4,
+      brandMentionRate: 0.5,
+      citationPresenceRate: 0.25,
+      measurement: "measured" as const,
+      errors: [],
+    };
+    const report = buildGrowthIntelligenceReport(makeAnalyzeResult({ geoSampleSize: 2 }), {
+      measuredGeo: measured,
+    });
+    expect(report.geoMeasurement).toBe("measured");
+    expect(report.labels.some((label) => /measured/i.test(label))).toBe(true);
   });
 });

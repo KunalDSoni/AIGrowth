@@ -28,6 +28,7 @@ function report(overrides: Partial<GrowthIntelligenceReport> = {}): GrowthIntell
     guardrails: ["Do not guarantee rankings, citations, mentions or traffic."],
     labels: ["GEO directional only"],
     evidenceIds: ["ev-geo"],
+    geoMeasurement: "simulated",
     ...overrides,
   };
 }

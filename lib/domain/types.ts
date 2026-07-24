@@ -306,6 +306,8 @@ export interface GrowthIntelligenceReport {
   guardrails: string[];
   labels: string[];
   evidenceIds: string[];
+  /** Whether the GEO signal is a live-measured answer-engine run or an LLM probe. */
+  geoMeasurement: "measured" | "simulated";
 }
 
 export interface ContentOpportunity {

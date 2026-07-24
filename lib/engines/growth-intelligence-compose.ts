@@ -13,13 +13,20 @@ import type {
   AIVisibilityPromptFamily,
   AIVisibilitySummary,
   AuditIssue,
+  BusinessProfileSnapshot,
   CitationGapAction,
   ContentOpportunity,
   GrowthIntelligenceReport,
   GrowthPillarId,
   OutcomeLearningRecord,
   PillarSummary,
+  WebsitePageProfile,
 } from "@/lib/domain/types";
+import {
+  buildBusinessAwareContentOpportunities,
+  type ContentGapCandidate,
+} from "@/lib/engines/content-gap";
+import type { PromptOpportunity } from "@/lib/engines/demand-proxy";
 import {
   buildGrowthSignals,
   buildUnifiedGrowthDecisions,
@@ -27,6 +34,7 @@ import {
   type RecommendationSignalInput,
 } from "@/lib/engines/growth-intelligence";
 import type { SourceEngine } from "@/lib/engines/recommendation-bus";
+import type { GeoMeasurement } from "@/lib/ingestion/geo-measurement";
 import { summarizeAIVisibility } from "@/lib/engines/ai-visibility";
 
 /** The six product-facing pillars, in fixed display order. */
@@ -99,12 +107,70 @@ function toAiVisibility(result: AnalyzeResult): AIVisibilitySummary[] {
 }
 
 /**
+ * Map a live search opportunity to a content-gap candidate. Demand, conversion,
+ * authority and competition are directional estimates (labelled as such by the
+ * content-gap builder) until real providers are connected — never presented as
+ * measured.
+ */
+function toContentGapCandidate(
+  opportunity: PromptOpportunity,
+  profile: BusinessProfileSnapshot,
+): ContentGapCandidate {
+  return {
+    id: opportunity.id,
+    title: opportunity.query,
+    audience: profile.audienceSegments[0] ?? "Buyers researching this category",
+    targetService: opportunity.service,
+    intent: opportunity.intent,
+    funnel: opportunity.funnelStage,
+    type: "content",
+    reason: "Search demand for this query with no dedicated page yet.",
+    cta: "Contact / enquire",
+    relatedPages: [],
+    relevance: opportunity.businessRelevance,
+    conversion: opportunity.funnelStage === "decision" ? 75 : 55,
+    authority: 50,
+    competition: 55,
+    effort: 45,
+    evidenceIds: [],
+  };
+}
+
+/** Content opportunities from live search demand, filtered against current pages. */
+function deriveContentOpportunities(result: AnalyzeResult): ContentOpportunity[] {
+  const intelligence = result.intelligence;
+  if (!intelligence?.searchOpportunities?.length) return [];
+
+  const pages: WebsitePageProfile[] = result.seo.pages
+    .filter((page) => page.ok)
+    .map((page, index) => ({
+      id: `page-${index}`,
+      url: page.finalUrl,
+      title: page.title ?? page.finalUrl,
+      pageType: "service",
+      services: intelligence.profile.services,
+      audiences: [],
+      funnelStage: "consideration",
+    }));
+
+  const candidates = intelligence.searchOpportunities.map((opportunity) =>
+    toContentGapCandidate(opportunity, intelligence.profile),
+  );
+
+  return buildBusinessAwareContentOpportunities({
+    business: intelligence.profile,
+    pages,
+    candidates,
+  });
+}
+
+/**
  * Map one live `AnalyzeResult` into the aggregator's six typed inputs.
  *
- * v1 sources: audit issues, next actions, citation gaps and AI-visibility come
- * from live crawl + GEO evidence. Content opportunities and outcomes have no
- * source on the analyze result yet, so they are empty here and labelled as
- * pending in the assembled report — never fabricated.
+ * Live sources: audit issues, next actions, citation gaps, AI-visibility and
+ * content opportunities (from live search demand). Outcomes have no live source
+ * yet — there is no measured before/after history to load — so they stay empty
+ * and are labelled as pending in the report, never fabricated.
  */
 export function toAggregatorInputs(result: AnalyzeResult): AggregatorInputs {
   return {
@@ -115,7 +181,7 @@ export function toAggregatorInputs(result: AnalyzeResult): AggregatorInputs {
       scoreComponents: candidate.scoreComponents,
     })),
     auditIssues: result.seo.siteIssues,
-    opportunities: [],
+    opportunities: deriveContentOpportunities(result),
     aiVisibility: toAiVisibility(result),
     citationGaps: result.intelligence?.citationGaps ?? [],
     outcomes: [],
@@ -223,13 +289,37 @@ const PENDING_SOURCES_LABEL =
  * the six-pillar snapshot plus ranked cross-engine decisions, carrying honesty
  * labels, SEO guardrails and evidence IDs through untouched.
  */
+export interface GrowthIntelligenceOptions {
+  /** A measured answer-engine GEO run (MDM). When measured, GEO stops being directional. */
+  measuredGeo?: GeoMeasurement;
+}
+
+/** Honest one-line provenance statement for the GEO signal. */
+function geoMeasurementLabel(measured: GeoMeasurement | undefined): {
+  measurement: "measured" | "simulated";
+  label: string;
+} {
+  if (measured?.measurement === "measured") {
+    return {
+      measurement: "measured",
+      label: `GEO measured against a live answer engine (n=${measured.sampleSize}).`,
+    };
+  }
+  return {
+    measurement: "simulated",
+    label: "GEO evidence is simulated (LLM probe) and directional — connect an answer engine to measure.",
+  };
+}
+
 export function buildGrowthIntelligenceReport(
   result: AnalyzeResult,
+  options: GrowthIntelligenceOptions = {},
 ): GrowthIntelligenceReport {
   const inputs = toAggregatorInputs(result);
   const signals = buildGrowthSignals(inputs);
   const decisions = buildUnifiedGrowthDecisions(signals);
   const pillars = buildPillarSnapshot(result, inputs);
+  const geo = geoMeasurementLabel(options.measuredGeo);
 
   return {
     domain: result.project.domain,
@@ -237,7 +327,8 @@ export function buildGrowthIntelligenceReport(
     pillars,
     decisions,
     guardrails: seoGuardrails,
-    labels: [...(result.intelligence?.labels ?? []), PENDING_SOURCES_LABEL],
+    labels: [...(result.intelligence?.labels ?? []), geo.label, PENDING_SOURCES_LABEL],
     evidenceIds: [...new Set(decisions.flatMap((decision) => decision.evidenceIds))],
+    geoMeasurement: geo.measurement,
   };
 }
