@@ -23,7 +23,12 @@
 /** How strongly the data backs the intended claim. Ordered weakest → strongest. */
 export type ClaimStrength = "insufficient" | "directional" | "supported";
 
-const STRENGTH_ORDER: ClaimStrength[] = ["insufficient", "directional", "supported"];
+export const STRENGTH_ORDER: ClaimStrength[] = ["insufficient", "directional", "supported"];
+
+/** The weaker of two claim strengths — a single disqualifying factor caps the claim. */
+export function weakestStrength(a: ClaimStrength, b: ClaimStrength): ClaimStrength {
+  return STRENGTH_ORDER.indexOf(a) <= STRENGTH_ORDER.indexOf(b) ? a : b;
+}
 
 /**
  * A pre-registration locks the intended study *before* any result is computed —
@@ -91,10 +96,6 @@ export const METHODOLOGY_GUARD = {
 } as const;
 
 export const METHODOLOGY_GUARD_VERSION = 1;
-
-function weakest(a: ClaimStrength, b: ClaimStrength): ClaimStrength {
-  return STRENGTH_ORDER.indexOf(a) <= STRENGTH_ORDER.indexOf(b) ? a : b;
-}
 
 function preRegistrationValid(reg: PreRegistration): boolean {
   return (
@@ -222,7 +223,7 @@ export function evaluateMethodology(
     }
   }
 
-  const strength = checks.reduce<ClaimStrength>((acc, c) => weakest(acc, c.cap), "supported");
+  const strength = checks.reduce<ClaimStrength>((acc, c) => weakestStrength(acc, c.cap), "supported");
   const publishable = strength !== "insufficient";
 
   return {
