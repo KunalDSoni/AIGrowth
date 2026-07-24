@@ -14,6 +14,12 @@
 
 import { generateDraft, type ContentBrief, type DraftAsset } from "@/lib/engines/brief-builder";
 
+/**
+ * The scaffold is the draft *content* body. Process metadata — the brief's
+ * measurement plan and claims-to-verify — is deliberately NOT embedded here: it
+ * lives on the brief and is surfaced in the approval UI. Keeping the body to
+ * publishable content is what lets an unedited scaffold pass the claim-check gate.
+ */
 export function scaffoldFromBrief(brief: ContentBrief): string {
   const checklist = (items: string[]) =>
     items.length ? items.map((i) => `- [ ] ${i}`).join("\n") : "- [ ] (none)";
@@ -31,12 +37,6 @@ export function scaffoldFromBrief(brief: ContentBrief): string {
     "",
     "## Call to action",
     brief.cta,
-    "",
-    "## Verify before publishing",
-    checklist(brief.claimsToVerify),
-    "",
-    "## Measurement",
-    brief.measurementPlan.map((m) => `- ${m}`).join("\n"),
     "",
   ].join("\n");
 }

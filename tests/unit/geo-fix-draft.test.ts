@@ -21,12 +21,21 @@ function brief(overrides: Partial<ContentBrief> = {}): ContentBrief {
 }
 
 describe("geo fix draft", () => {
-  it("scaffolds the brief's proof requirements, cta and measurement", () => {
+  it("scaffolds the brief's proof requirements and cta as publishable content", () => {
     const body = scaffoldFromBrief(brief());
     expect(body).toContain("Questions from real customers");
     expect(body).toContain("Ask us your question");
-    expect(body).toContain("Record publish date.");
-    expect(body).toContain("Verify: brand absent in AI answers");
+  });
+
+  it("keeps process metadata (measurement plan, claims-to-verify) out of the content body", () => {
+    // Those live on the brief and belong in the approval UI, not the publishable draft.
+    const body = scaffoldFromBrief({
+      ...brief(),
+      measurementPlan: ["Track leading indicators without guaranteed causation."],
+      claimsToVerify: ["Verify: brand absent in AI answers"],
+    });
+    expect(body).not.toContain("leading indicators");
+    expect(body).not.toContain("Verify: brand absent");
   });
 
   it("produces a gated draft that starts in draft and requires approval", () => {
