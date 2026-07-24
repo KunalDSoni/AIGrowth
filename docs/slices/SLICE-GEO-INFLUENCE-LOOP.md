@@ -30,9 +30,9 @@ spec → plan → TDD-build → ship cycle, independently testable and shippable
 
 | Epic ID | Epic | Delivers | Depends | Reuses | Status |
 |---|---|---|---|---|---|
-| **GIL-07** | Fix → crew-brief adapter | Prescribed fix → structured brief the crew drafts against. | 05 | agent crew wiring | Planned |
-| **GIL-08** | Answer-optimized draft + claim-check | Crew drafts the asset; claim-checker rejects unsupported claims; gated draft with sources. | 07 | crew QA, claim checks | Planned |
-| **GIL-09** | Approval + provenance | Human approval gate UI; approved drafts carry provenance for attribution. | 08 | approval gates, provenance store | Planned |
+| **GIL-07** | Fix → crew-brief adapter | Prescribed fix → structured brief the crew drafts against. | 05 | agent crew wiring | **Done** |
+| **GIL-08** | Answer-optimized draft + claim-check | Crew drafts the asset; claim-checker rejects unsupported claims; gated draft with sources. | 07 | crew QA, claim checks | **Done** |
+| **GIL-09** | Approval + provenance | Human approval gate UI; approved drafts carry provenance for attribution. | 08 | approval gates, provenance store | **Done** |
 
 ## Stage D — Prove (causal citation lift)
 
