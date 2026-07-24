@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { KpiStatCard } from "@/components/marketing/kpi-stat-card";
+import { ReportSuitePanel } from "@/components/reports/report-suite-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,6 +51,8 @@ export default function MarketingReportPage() {
           </div>
         }
       />
+
+      {result?.project.domain ? <ReportSuitePanel domain={result.project.domain} /> : null}
 
       {!ws && (
         <Card>
