@@ -35,4 +35,12 @@ describe("buildSeoReport", () => {
     const kinds = model.sections.flatMap((s) => s.blocks.map((b) => b.kind));
     expect(kinds).toEqual(["insufficient"]);
   });
+  it("emits insufficient block but preserves KPIs and table when crawl returns no pages", () => {
+    const model = buildSeoReport(assembleSpineFrom("acme.com", analyze(0), null));
+    expect(model.status).toBe("insufficient");
+    const kinds = model.sections.flatMap((s) => s.blocks.map((b) => b.kind));
+    expect(kinds).toContain("insufficient");
+    expect(kinds).toContain("kpis");
+    expect(kinds).toContain("table");
+  });
 });
