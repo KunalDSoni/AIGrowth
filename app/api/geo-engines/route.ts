@@ -3,6 +3,7 @@ import { domainKey, getProjectStore } from "@/lib/projects/store";
 import { getConfiguredEngines } from "@/lib/engines/geo-engine-registry";
 import { runMultiEngineProbes } from "@/lib/engines/geo-multi-engine";
 import { buildCrossEngineLedger } from "@/lib/engines/geo-cross-engine-ledger";
+import { buildEngineTargetPlan } from "@/lib/engines/geo-engine-targets";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -41,7 +42,8 @@ export async function GET(request: Request) {
       brandGuess: latest.project.brandGuess,
       domain: domainKey(domain),
     });
-    return NextResponse.json({ report: buildCrossEngineLedger(results) });
+    const report = buildCrossEngineLedger(results);
+    return NextResponse.json({ report, targetPlan: buildEngineTargetPlan(report) });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to build cross-engine ledger";
     return NextResponse.json({ error: message, report: null }, { status: 500 });

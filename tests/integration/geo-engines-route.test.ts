@@ -46,5 +46,8 @@ describe("GET /api/geo-engines", () => {
     const body = await res.json();
     expect(body.report.engines.map((e: { engine: string }) => e.engine)).toEqual(["mock"]);
     expect(body.report.engines[0].measurement).toBe("simulated");
+    // targetPlan is included; mock is simulated so any target is flagged directional
+    expect(body.targetPlan).toBeDefined();
+    expect(Array.isArray(body.targetPlan.targets)).toBe(true);
   });
 });

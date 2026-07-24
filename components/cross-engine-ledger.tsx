@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { CrossEngineLedger, EngineCitationState } from "@/lib/engines/geo-cross-engine-ledger";
+import type { EngineTargetPlan } from "@/lib/engines/geo-engine-targets";
 
 const STATE_VARIANT: Record<EngineCitationState, "default" | "secondary" | "outline"> = {
   covered: "default",
@@ -16,9 +17,34 @@ const STATE_LABEL: Record<EngineCitationState, string> = {
   unmeasured: "Unmeasured",
 };
 
-export function CrossEngineLedgerView({ report }: { report: CrossEngineLedger }) {
+export function CrossEngineLedgerView({
+  report,
+  targetPlan,
+}: {
+  report: CrossEngineLedger;
+  targetPlan?: EngineTargetPlan;
+}) {
   return (
     <div className="space-y-6">
+      {targetPlan && targetPlan.targets.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Where to focus</CardTitle>
+            <CardDescription>{targetPlan.note}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {targetPlan.targets.map((t, i) => (
+              <div key={t.engine} className="flex items-start gap-3 text-sm">
+                <Badge variant={i === 0 ? "default" : "outline"} className="mt-0.5 capitalize">
+                  {i === 0 ? "Focus" : `#${i + 1}`} · {t.engine}
+                </Badge>
+                <span className="text-muted-foreground">{t.rationale}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       {report.enginesAbsent.length > 0 && (
         <Card>
           <CardHeader>

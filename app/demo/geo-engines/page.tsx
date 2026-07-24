@@ -6,10 +6,12 @@ import { CrossEngineLedgerView } from "@/components/cross-engine-ledger";
 import { PageHeader } from "@/components/page-header";
 import { useLiveAnalyze } from "@/lib/client/live-project";
 import type { CrossEngineLedger } from "@/lib/engines/geo-cross-engine-ledger";
+import type { EngineTargetPlan } from "@/lib/engines/geo-engine-targets";
 
 export default function GeoEnginesPage() {
   const { result, ready, hasLive } = useLiveAnalyze();
   const [report, setReport] = useState<CrossEngineLedger | null>(null);
+  const [targetPlan, setTargetPlan] = useState<EngineTargetPlan | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
 
   const domain = result?.project.domain;
@@ -23,8 +25,10 @@ export default function GeoEnginesPage() {
       .then(async (response) => {
         const body = await response.json();
         if (!active) return;
-        if (response.ok) setReport(body.report as CrossEngineLedger);
-        else setError(body.error ?? "Failed to load cross-engine visibility.");
+        if (response.ok) {
+          setReport(body.report as CrossEngineLedger);
+          setTargetPlan(body.targetPlan as EngineTargetPlan | undefined);
+        } else setError(body.error ?? "Failed to load cross-engine visibility.");
       })
       .catch((cause) => {
         if (active) setError(cause instanceof Error ? cause.message : String(cause));
@@ -52,7 +56,7 @@ export default function GeoEnginesPage() {
       />
       {error && <p className="text-sm text-destructive">{error}</p>}
       {report ? (
-        <CrossEngineLedgerView report={report} />
+        <CrossEngineLedgerView report={report} targetPlan={targetPlan} />
       ) : (
         !error && <p className="text-sm text-muted-foreground">Probing engines…</p>
       )}
