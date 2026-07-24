@@ -6,7 +6,7 @@ import type { AnalyzeResult } from "@/lib/analyze/types";
 function analyze(sampleSize: number): AnalyzeResult {
   return {
     project: { id: "p", domain: "acme.com", brandGuess: "Acme", url: "https://acme.com" },
-    seo: { site: { score: 0, band: "weak", pagesScanned: 0, pagesFailed: 0, totalIssues: 0, critical: 0, high: 0, quickWins: 0, monitors: 0, worstPages: [], topIssues: [] }, pages: [], siteIssues: [], scannedAt: "", finalUrl: "", origin: "" },
+    seo: { site: { score: 0, band: "poor", pagesScanned: 0, pagesFailed: 0, totalIssues: 0, critical: 0, high: 0, quickWins: 0, monitors: 0, worstPages: [], topIssues: [] }, pages: [], siteIssues: [], scannedAt: "", finalUrl: "", origin: "" },
     geo: { runId: "g", model: "gemini", sampleSize, brandMentionRate: 0.4, firstPartyCitationShare: 0.25, observations: [], errors: [], cost: { provider: "gemini", estimatedUsd: 0, tokens: 0 } },
     evidence: [], nextActions: [], guardrails: [], analyzedAt: "2026-07-24T00:00:00Z",
   } as AnalyzeResult;

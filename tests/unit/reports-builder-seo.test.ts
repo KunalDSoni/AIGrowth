@@ -7,7 +7,7 @@ function analyze(pages: number): AnalyzeResult {
   return {
     project: { id: "p", domain: "acme.com", brandGuess: "Acme", url: "https://acme.com" },
     seo: {
-      site: { score: 72, band: "solid", pagesScanned: pages, pagesFailed: 0, totalIssues: 1, critical: 0, high: 1, quickWins: 0, monitors: 0, worstPages: [], topIssues: [] },
+      site: { score: 72, band: "good", pagesScanned: pages, pagesFailed: 0, totalIssues: 1, critical: 0, high: 1, quickWins: 0, monitors: 0, worstPages: [], topIssues: [] },
       pages: Array.from({ length: pages }, () => ({})) as never,
       siteIssues: [
         { id: "i1", ruleId: "meta.title.missing", category: "metadata", severity: "high", title: "Missing title tags", description: "3 pages lack titles", recommendedAction: "Add unique titles", affectedPages: 3, evidenceIds: [], impactArea: "metadata" },
