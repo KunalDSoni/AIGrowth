@@ -23,6 +23,7 @@ import {
   Target,
   TrendingUp,
   Wrench,
+  Wand2,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -69,6 +70,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/demo/opportunities", title: "Opportunities", icon: Target },
       { href: "/demo/content", title: "Content planner", icon: BookOpen },
       { href: "/demo/ai-visibility", title: "AI visibility", icon: Radar },
+      { href: "/demo/geo-fixes", title: "GEO citation fixes", icon: Wand2 },
       { href: "/demo/competitors", title: "Competitors", icon: Swords },
       { href: "/demo/bandit", title: "CRO bandit", icon: Dices },
       { href: "/demo/sdr", title: "SDR audits", icon: Send },

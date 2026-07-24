@@ -16,15 +16,15 @@ spec → plan → TDD-build → ship cycle, independently testable and shippable
 |---|---|---|---|---|---|
 | **GIL-01** | Per-prompt citation ledger | Per-prompt record: brandMentioned vs brandCited vs absent vs unanswered + per-prompt cited competitor sources. Pure derivation, no store. | — | prompt universe, `measureGeo`, `GeoResult` | **Done** |
 | **GIL-02** | Cited-source feature extraction | For cited sources, extract what they have (structured pricing, FAQ schema, comparison table, entity clarity, freshness, direct answer). | 01 | OSI/MDM crawl, Lighthouse | **Done** |
-| **GIL-03** | Brand-page gap diff | Diff brand's own pages vs the cited-source feature profile → concrete missing features per prompt. | 02 | citation-gap, content-gap | Planned |
+| **GIL-03** | Brand-page gap diff | Diff brand's own pages vs the cited-source feature profile → concrete missing features per prompt. | 02 | citation-gap, content-gap | **Done** |
 
 ## Stage B — Prescribe (the fix engine — keystone bridge)
 
 | Epic ID | Epic | Delivers | Depends | Reuses | Status |
 |---|---|---|---|---|---|
-| **GIL-04** | Fix-type taxonomy & registry | Documented, versioned catalog of answer-optimized asset types (FAQ, comparison, schema, entity, pricing, glossary, proof). | — | scoring-constants registry pattern | Planned |
-| **GIL-05** | Citation-Fix recommender | Each root-cause gap → specific fix type + concrete target + directional expected-lift band. Ranked, evidence-ID'd, honesty-labelled. | 03, 04 | unified growth decisions, evidence gating | Planned |
-| **GIL-06** | Fix surface (API + dashboard) | `GET /api/geo-fixes` + `/demo/geo-fixes`: why-not-cited + fix + evidence + labels + empty state. | 05 | GIP dashboard, provenance UI | Planned |
+| **GIL-04** | Fix-type taxonomy & registry | Documented, versioned catalog of answer-optimized asset types (FAQ, comparison, schema, entity, pricing, glossary, proof). | — | scoring-constants registry pattern | **Done** |
+| **GIL-05** | Citation-Fix recommender | Each root-cause gap → specific fix type + concrete target + directional expected-lift band. Ranked, evidence-ID'd, honesty-labelled. | 03, 04 | unified growth decisions, evidence gating | **Done** |
+| **GIL-06** | Fix surface (API + dashboard) | `GET /api/geo-fixes` + `/demo/geo-fixes`: why-not-cited + fix + evidence + labels + empty state. | 05 | GIP dashboard, provenance UI | **Done** |
 
 ## Stage C — Draft + Gate
 
