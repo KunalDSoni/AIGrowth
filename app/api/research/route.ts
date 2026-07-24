@@ -1,51 +1,41 @@
-// app/api/research/route.ts
 import { NextResponse } from "next/server";
-import { z } from "zod";
-import { findAngles } from "@/lib/research/angles";
-import { preRegister } from "@/lib/research/methodology";
-import { runStudy } from "@/lib/research/engine";
-import { createFixtureProvider } from "@/tests/support/research-fixtures";
-import type { Dataset } from "@/lib/research/types";
+import { domainKey, getProjectStore } from "@/lib/projects/store";
+import { buildCitationLedger } from "@/lib/engines/geo-citation-ledger";
+import { buildResearchPlan } from "@/lib/engines/research-engine";
+import { isRealCrawlEnabled } from "@/lib/providers/crawler";
 
-const gap = z.object({
-  question: z.string(),
-  topic: z.string(),
-  askVolume: z.number(),
-  existingSources: z.number(),
-});
-const observation = z.object({ matched: z.boolean() });
-const dataset = z.object({
-  id: z.string(),
-  provenance: z.object({
-    source: z.string(),
-    license: z.enum(["open", "public_domain", "cc_by", "proprietary_first_party", "unknown"]),
-    retrievedAt: z.string(),
-  }),
-  observations: z.array(observation),
-  population: z.string().optional(),
-  sampleFrame: z.string().optional(),
-});
-const bodySchema = z.object({
-  gaps: z.array(gap).min(1),
-  dataset,
-  minSampleSize: z.number().optional(),
-});
+export const runtime = "nodejs";
 
-export async function POST(request: Request): Promise<Response> {
-  let parsed: z.infer<typeof bodySchema>;
-  try {
-    parsed = bodySchema.parse(await request.json());
-  } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+/**
+ * PRE-6 — Proprietary Research Engine plan for a scanned domain.
+ *
+ * Turns the persisted GEO run's citation ledger into ranked study angles: the
+ * niche gaps where an original statistic would get cited but no source owns the
+ * answer. Angles are derived offline from real scan data. Composing a full study
+ * additionally needs licensed datasets, so `canCompose` is gated on real-data
+ * mode — offline the plan is honestly angles-only, never fabricated findings.
+ * An un-analysed domain returns 409, never stand-in data.
+ */
+export async function GET(request: Request) {
+  const domain = new URL(request.url).searchParams.get("domain");
+  if (!domain) {
+    return NextResponse.json({ error: "A domain is required.", plan: null }, { status: 400 });
   }
 
-  const angles = findAngles(parsed.gaps);
-  const top = angles[0];
-  const methodology = preRegister(top.question, "primary_metric", parsed.minSampleSize ?? 30, new Date().toISOString());
-  const study = await runStudy({
-    angle: top,
-    methodology,
-    provider: createFixtureProvider(parsed.dataset as Dataset),
-  });
-  return NextResponse.json({ angles, study });
+  const latest = await getProjectStore().loadLatest(domainKey(domain));
+  if (!latest) {
+    return NextResponse.json(
+      { error: `No analysis for ${domain}. Run a scan first.`, needsScan: true, plan: null },
+      { status: 409 },
+    );
+  }
+
+  try {
+    const ledger = buildCitationLedger(latest.geo);
+    const plan = buildResearchPlan(ledger, { canCompose: isRealCrawlEnabled() });
+    return NextResponse.json({ plan });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to build research plan";
+    return NextResponse.json({ error: message, plan: null }, { status: 500 });
+  }
 }
