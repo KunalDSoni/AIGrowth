@@ -34,14 +34,20 @@ interface GeminiLike {
 /** Wrap the Gemini visibility provider as an AnswerEngineProvider for the registry. */
 export class GeminiAnswerEngine implements AnswerEngineProvider {
   readonly engines = ["gemini"];
-  private provider: GeminiLike;
+  private provider?: GeminiLike;
 
   constructor(provider?: GeminiLike) {
-    this.provider = provider ?? new GeminiVisibilityProvider();
+    this.provider = provider;
+  }
+
+  /** Lazily construct the real provider on first use — no I/O or key check in the ctor. */
+  private get engine(): GeminiLike {
+    if (!this.provider) this.provider = new GeminiVisibilityProvider();
+    return this.provider;
   }
 
   async ask(prompt: string, opts: { brand?: string } = {}): Promise<AnswerObservation> {
-    const { rawText } = await this.provider.answer(prompt);
+    const { rawText } = await this.engine.answer(prompt);
     return {
       prompt,
       answer: rawText,
