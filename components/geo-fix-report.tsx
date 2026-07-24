@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { FixShipControls } from "@/components/fix-ship-controls";
 import type { GeoFixReport } from "@/lib/engines/geo-fix-report";
 
 const BAND_LABEL: Record<string, string> = { high: "High", moderate: "Moderate", low: "Low" };
@@ -72,6 +73,7 @@ export function GeoFixReportView({ report }: { report: GeoFixReport }) {
                       <li key={a}>{a}</li>
                     ))}
                   </ul>
+                  <FixShipControls domain={report.domain} fix={fix} />
                 </CardContent>
               </Card>
             ))}
