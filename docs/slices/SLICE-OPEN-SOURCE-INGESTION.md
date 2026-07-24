@@ -7,8 +7,9 @@
 **Implementation status:** provider/ingestion layer is built and unit-tested with mock defaults
 (`lib/providers/*`, `lib/ingestion/*`). Real engines (Crawlee, Firecrawl, OpenSearch, local embeddings)
 are wired behind env-selected, lazy-imported adapters — install + `docker compose -f docker-compose.ingestion.yml up`
-to activate. OSI-003's full-site audit and OSI-011 indexing are exposed as composable functions
-(`crawlAndIngest`, `indexCorpus`); surfacing them in the analyze route/dashboard is the remaining follow-up.
+to activate. OSI-003's full-site audit and OSI-011 indexing are composed in `buildIngestionReport` and
+surfaced live at `GET /api/ingestion?domain=` and the `/demo/ingestion` dashboard (nav: Analyze →
+"Ingestion & data mesh"), every section carrying a `measured|simulated|estimate` badge.
 
 Build order is strict; each epic is independently testable (TDD) and shippable before the next.
 Defaults are always the no-dependency option (`mock` / `cheerio` / `memory`) so the demo and tests

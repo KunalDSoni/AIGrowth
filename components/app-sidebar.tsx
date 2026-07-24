@@ -8,6 +8,7 @@ import {
   Bot,
   Building2,
   ChevronsUpDown,
+  Database,
   Dices,
   FileSearch,
   LayoutDashboard,
@@ -58,6 +59,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/demo/business", title: "Business graph", icon: Building2 },
       { href: "/demo/audit", title: "Audit workspace", icon: FileSearch },
       { href: "/demo/site-intelligence", title: "Site intelligence", icon: Wrench },
+      { href: "/demo/ingestion", title: "Ingestion & data mesh", icon: Database },
     ],
   },
   {

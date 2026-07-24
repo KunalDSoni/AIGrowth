@@ -10,7 +10,8 @@ the zero-dependency mock. Every record carries `source` **and** a `measured | si
 **Implementation status:** all four providers (`answer-engine`, `serp`, `performance`, `backlinks`)
 are built and unit-tested with mock defaults; real vendors/OSS are env-selected adapters. Measured-GEO
 aggregation (`measureGeo`) and citation verification (`verifyAnswerCitations`) are built as composable
-functions; surfacing `measured` vs `simulated` in the analyze report/dashboard is the remaining follow-up.
+functions, composed in `buildIngestionReport` and surfaced at `GET /api/ingestion?domain=` and the
+`/demo/ingestion` dashboard, where `measured` vs `simulated` vs `estimate` is shown per section.
 
 | Epic ID | Epic | What it delivers | Depends on | Status |
 |---|---|---|---|---|
