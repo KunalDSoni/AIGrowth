@@ -38,9 +38,9 @@ spec → plan → TDD-build → ship cycle, independently testable and shippable
 
 | Epic ID | Epic | Delivers | Depends | Reuses | Status |
 |---|---|---|---|---|---|
-| **GIL-10** | Change ledger (intervention record) | Record what changed, when, on which prompts/assets. | 09 | durable audit/evidence store | Planned |
-| **GIL-11** | Re-probe + lift attribution | Re-run universe post-change; compute citation lift with statistical layer; label causal vs directional. | 10 | metric-integrity + statistical layer | Planned |
-| **GIL-12** | Lift reporting surface | Before/after per prompt, confidence intervals, honest labels. | 11 | metric UI, outcome-learning | Planned |
+| **GIL-10** | Change ledger (intervention record) | Record what changed, when, on which prompts/assets. | 09 | durable audit/evidence store | **Done** |
+| **GIL-11** | Re-probe + lift attribution | Re-run universe post-change; compute citation lift with statistical layer; label causal vs directional. | 10 | metric-integrity + statistical layer | **Done** |
+| **GIL-12** | Lift reporting surface | Before/after per prompt, confidence intervals, honest labels. | 11 | metric UI, outcome-learning | **Done** |
 
 ## Stage E — Learn
 
