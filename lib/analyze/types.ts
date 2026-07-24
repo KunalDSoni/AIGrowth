@@ -36,6 +36,38 @@ export interface GeoResult {
   cost: { provider: "gemini"; estimatedUsd: number; tokens: number };
 }
 
+export type PromptCitationStatus =
+  | "cited" // first-party citation present for this prompt
+  | "mentioned-not-cited" // brand named in text but no first-party citation
+  | "absent" // neither mention nor citation
+  | "unanswered"; // probe errored or returned empty — excluded from all rates
+
+export interface PromptCitationRecord {
+  promptId: string;
+  prompt: string;
+  status: PromptCitationStatus;
+  brandMentioned: boolean;
+  brandCited: boolean;
+  competitorDomains: string[];
+  citedSources: GeoCitation[];
+}
+
+export interface CitationLedger {
+  runId: string;
+  model: string;
+  sampleSize: number;
+  records: PromptCitationRecord[];
+  competitorFrequency: { domain: string; count: number }[];
+  coverage: {
+    cited: number;
+    mentionedNotCited: number;
+    absent: number;
+    unanswered: number;
+  };
+  reliable: boolean;
+  evidenceIds: string[];
+}
+
 export interface SeoResult {
   site: SiteSummary;
   pages: PageAudit[];
