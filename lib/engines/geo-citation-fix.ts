@@ -10,6 +10,9 @@
 import type { AnswerFitnessFlag, BrandGapDiff } from "@/lib/engines/geo-brand-gap-diff";
 import { FIX_TYPES, type FixEffort, type FixTypeId } from "@/lib/engines/geo-fix-taxonomy";
 
+/** Neutral learned weight — the Beta prior mean; leaves ranking on the static baseImpact. */
+const NEUTRAL_WEIGHT = 0.5;
+
 export type ExpectedLiftBand = "low" | "moderate" | "high";
 export type FixConfidence = "Low" | "Medium";
 
@@ -50,7 +53,7 @@ function bandFor(priority: number): ExpectedLiftBand {
 
 export function buildCitationFixPlan(
   diff: BrandGapDiff,
-  opts?: { evidenceIds?: string[]; sampleReliable?: boolean },
+  opts?: { evidenceIds?: string[]; sampleReliable?: boolean; weights?: Record<FixTypeId, number> },
 ): CitationFixPlan {
   const evidenceIds = opts?.evidenceIds ?? [];
   const confident = diff.reliable && opts?.sampleReliable !== false;
@@ -58,8 +61,13 @@ export function buildCitationFixPlan(
   const fixes: CitationFix[] = diff.topGaps.map((gap) => {
     const def = FIX_TYPES[gap.feature];
     const promptWeight = Math.min(gap.affectedPrompts.length, 5) / 5;
+    // GIL-15: blend the learned outcome weight (posterior mean) into the static
+    // baseImpact prior. A neutral 0.5 weight leaves ranking unchanged; a proven
+    // winner is boosted, a proven loser demoted. Centred on the prior so learning
+    // adjusts rather than replaces the documented default.
+    const learnedFactor = opts?.weights ? (opts.weights[def.id] ?? NEUTRAL_WEIGHT) / NEUTRAL_WEIGHT : 1;
     const priority =
-      Math.round(def.baseImpact * gap.competitorShare * (0.5 + 0.5 * promptWeight) * 100) / 100;
+      Math.round(def.baseImpact * gap.competitorShare * (0.5 + 0.5 * promptWeight) * learnedFactor * 100) / 100;
     return {
       id: `fix-${def.id}`,
       fixTypeId: def.id,

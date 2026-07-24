@@ -46,9 +46,9 @@ spec → plan → TDD-build → ship cycle, independently testable and shippable
 
 | Epic ID | Epic | Delivers | Depends | Reuses | Status |
 |---|---|---|---|---|---|
-| **GIL-13** | Fix-outcome store | Record (fix type, prompt type) → observed lift. | 12 | outcome-learning slice | Planned |
-| **GIL-14** | Outcome reweighting (bandit) | Feed outcomes into MAB/learning layer to reweight which fix types win. | 13 | agentic-MAB layer | Planned |
-| **GIL-15** | Learned-prior recommender upgrade | GIL-05 reads learned weights → recommendations improve over time. | 14 | recommender (05) | Planned |
+| **GIL-13** | Fix-outcome store | Record (fix type, prompt type) → observed lift. | 12 | outcome-learning slice | **Done** |
+| **GIL-14** | Outcome reweighting (bandit) | Feed outcomes into MAB/learning layer to reweight which fix types win. | 13 | agentic-MAB layer | **Done** |
+| **GIL-15** | Learned-prior recommender upgrade | GIL-05 reads learned weights → recommendations improve over time. | 14 | recommender (05) | **Done** |
 
 **Optional parallel track (not critical path):** multi-engine expansion — sample
 ChatGPT/Perplexity/etc. beyond Gemini so the ledger widens. Slot after GIL-06.
