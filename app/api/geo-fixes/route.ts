@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { domainKey, getProjectStore } from "@/lib/projects/store";
 import { buildGeoFixReport } from "@/lib/engines/geo-fix-report";
 import { getWebsiteCrawler, isRealCrawlEnabled } from "@/lib/providers/crawler";
+import { loadLifts } from "@/lib/engines/geo-fix-store";
+import { learnedFixWeights } from "@/lib/engines/geo-fix-bandit";
 
 export const runtime = "nodejs";
 
@@ -30,7 +32,9 @@ export async function GET(request: Request) {
 
   try {
     const crawler = isRealCrawlEnabled() ? getWebsiteCrawler() : undefined;
-    const report = await buildGeoFixReport(latest, { crawler });
+    // OPS-5: recommendations learn from this domain's own measured lift history.
+    const weights = learnedFixWeights(loadLifts(domainKey(domain)));
+    const report = await buildGeoFixReport(latest, { crawler, weights });
     return NextResponse.json({ report });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to build GEO fix report";

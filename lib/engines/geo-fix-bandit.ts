@@ -12,7 +12,8 @@
 
 import { createExperiment, posteriorMeans, type BanditExperiment } from "@/lib/bandit/thompson";
 import { FIX_TYPES, type FixTypeId } from "@/lib/engines/geo-fix-taxonomy";
-import type { FixTypeOutcomeStat } from "@/lib/engines/geo-fix-outcomes";
+import { aggregateFixOutcomes, recordFixOutcome, type FixTypeOutcomeStat } from "@/lib/engines/geo-fix-outcomes";
+import type { CitationLift } from "@/lib/engines/geo-lift";
 
 const FIX_DEFS = Object.values(FIX_TYPES);
 
@@ -37,4 +38,9 @@ export function buildFixTypeExperiment(stats: FixTypeOutcomeStat[]): BanditExper
 /** Learned weight (posterior mean, 0..1) per fix type; untried types weight 0.5. */
 export function fixTypeWeights(stats: FixTypeOutcomeStat[]): Record<FixTypeId, number> {
   return posteriorMeans(buildFixTypeExperiment(stats)) as Record<FixTypeId, number>;
+}
+
+/** End-to-end: measured lifts (GIL-11) → learned per-fix-type weights for the recommender. */
+export function learnedFixWeights(lifts: CitationLift[]): Record<FixTypeId, number> {
+  return fixTypeWeights(aggregateFixOutcomes(lifts.map(recordFixOutcome)));
 }

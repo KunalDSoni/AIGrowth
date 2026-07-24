@@ -22,6 +22,7 @@ import {
 } from "@/lib/engines/geo-cited-source-features";
 import { buildBrandGapDiff } from "@/lib/engines/geo-brand-gap-diff";
 import { buildCitationFixPlan, type CitationFix } from "@/lib/engines/geo-citation-fix";
+import type { FixTypeId } from "@/lib/engines/geo-fix-taxonomy";
 
 export interface GeoFixReport {
   domain: string;
@@ -40,6 +41,8 @@ export interface GeoFixReport {
 export interface BuildGeoFixReportOptions {
   crawler?: CitedSourceCrawler;
   limit?: number;
+  /** Learned per-fix-type weights (OPS-5) blended into recommendation ranking. */
+  weights?: Record<FixTypeId, number>;
 }
 
 export async function buildGeoFixReport(
@@ -95,6 +98,10 @@ export async function buildGeoFixReport(
   }
 
   const diff = buildBrandGapDiff(brandFeatures, profiles);
-  const plan = buildCitationFixPlan(diff, { evidenceIds, sampleReliable: ledger.reliable });
+  const plan = buildCitationFixPlan(diff, {
+    evidenceIds,
+    sampleReliable: ledger.reliable,
+    weights: opts.weights,
+  });
   return { ...base, fixes: plan.fixes, fixesAvailable: true, note: plan.note };
 }
