@@ -15,7 +15,7 @@ spec → plan → TDD-build → ship cycle, independently testable and shippable
 | Epic ID | Epic | Delivers | Depends | Reuses | Status |
 |---|---|---|---|---|---|
 | **GIL-01** | Per-prompt citation ledger | Per-prompt record: brandMentioned vs brandCited vs absent vs unanswered + per-prompt cited competitor sources. Pure derivation, no store. | — | prompt universe, `measureGeo`, `GeoResult` | **Done** |
-| **GIL-02** | Cited-source feature extraction | For cited sources, extract what they have (structured pricing, FAQ schema, comparison table, entity clarity, freshness, direct answer). | 01 | OSI/MDM crawl, Lighthouse | Planned |
+| **GIL-02** | Cited-source feature extraction | For cited sources, extract what they have (structured pricing, FAQ schema, comparison table, entity clarity, freshness, direct answer). | 01 | OSI/MDM crawl, Lighthouse | **Done** |
 | **GIL-03** | Brand-page gap diff | Diff brand's own pages vs the cited-source feature profile → concrete missing features per prompt. | 02 | citation-gap, content-gap | Planned |
 
 ## Stage B — Prescribe (the fix engine — keystone bridge)
